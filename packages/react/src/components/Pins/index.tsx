@@ -7,12 +7,12 @@ import type { Pin as P } from 'types';
 import { useDebounce, useCurrentBreakpoint } from 'lib/hooks';
 
 const Pins = () => {
-  const { data } = useSWR<{ pins: P[] }>(`/pins?_path=${window.location.pathname}`);
+  const { data } = useSWR<{ nodes: P[] }>(`/pins?_path=${window.location.pathname}`);
 
   const r = useDebounce(useCurrentBreakpoint(), 100);
   const pins = useMemo(() => {
     if (!r) return [];
-    return (data?.pins || []).filter((pin) => {
+    return (data?.nodes || []).filter((pin) => {
       if (r.start === 0 && r.end === 0) return true;
       if (r.start === 0 && r.end !== 0) return pin.w <= r.end;
       if (r.start !== 0 && r.end === 0) return pin.w >= r.start;

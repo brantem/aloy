@@ -21,12 +21,12 @@ const Inbox = () => {
     setActiveId: (v: number) => v !== state.activeId && state.setActiveId(v, false),
   }));
 
-  const { data, isLoading } = useSWR<{ pins: Pin[] }>(`/pins?_path=${window.location.pathname}`);
+  const { data, isLoading } = useSWR<{ nodes: Pin[] }>(`/pins?_path=${window.location.pathname}`);
 
   const r = useDebounce(useCurrentBreakpoint(), 100);
   const pins = useMemo(() => {
     if (!r) return [];
-    return (data?.pins || []).filter((pin) => {
+    return (data?.nodes || []).filter((pin) => {
       if (r.start === 0 && r.end === 0) return true;
       if (r.start === 0 && r.end !== 0) return pin.w <= r.end;
       if (r.start !== 0 && r.end === 0) return pin.w >= r.start;
