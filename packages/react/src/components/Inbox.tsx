@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import useSWR from 'swr';
@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import Comment from 'components/Comment';
 
 import { State, type Pin } from 'types';
-import { useDebounce, useCurrentBreakpoint } from 'lib/hooks';
+import { useCurrentBreakpoint } from 'lib/hooks';
 import { useAppStore, usePinStore } from 'lib/stores';
 import { cn } from 'lib/helpers';
 
@@ -23,8 +23,8 @@ const Inbox = () => {
 
   const { data, isLoading } = useSWR<{ nodes: Pin[] }>(`/pins?_path=${window.location.pathname}`);
 
-  const r = useDebounce(useCurrentBreakpoint(), 100);
-  const pins = useMemo(() => {
+  const r = useCurrentBreakpoint();
+  const pins = (() => {
     if (!r) return [];
     return (data?.nodes || []).filter((pin) => {
       if (r.start === 0 && r.end === 0) return true;
@@ -32,7 +32,7 @@ const Inbox = () => {
       if (r.start !== 0 && r.end === 0) return pin.w >= r.start;
       return pin.w >= r.start && pin.w <= r.end;
     });
-  }, [r]);
+  })();
 
   useEffect(() => {
     if (!isOpen) return;
