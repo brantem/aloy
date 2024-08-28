@@ -1,6 +1,7 @@
 import { useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import useSWR from 'swr';
 
 import Comment from 'components/Comment';
 
@@ -8,8 +9,6 @@ import { State, type Pin } from 'types';
 import { useDebounce, useCurrentBreakpoint } from 'lib/hooks';
 import { useAppStore, usePinStore } from 'lib/stores';
 import { cn } from 'lib/helpers';
-
-const createdAt = Date.now();
 
 const Inbox = () => {
   const listRef = useRef<HTMLDivElement>(null);
@@ -22,34 +21,7 @@ const Inbox = () => {
     setActiveId: (v: number) => v !== state.activeId && state.setActiveId(v, false),
   }));
 
-  const { data, isLoading } = {
-    data: {
-      pins: [
-        {
-          id: 1,
-          path: 'body > #root .flex:nth-child(11)',
-          w: 3008,
-          x: 0.024,
-          y: 0.238,
-          _x: 0.33643617021276595,
-          _y: 0.3713257348530294,
-          user: {
-            id: 'user-1',
-            name: 'User 1',
-          },
-          total_replies: 0,
-          completed_at: null,
-          comment: {
-            id: 1,
-            text: 'Test',
-            created_at: createdAt,
-            updated_at: createdAt,
-          },
-        },
-      ] as Pin[],
-    },
-    isLoading: false,
-  }; // TODO
+  const { data, isLoading } = useSWR<{ pins: Pin[] }>(`/pins?_path=${window.location.pathname}`);
 
   const r = useDebounce(useCurrentBreakpoint(), 100);
   const pins = useMemo(() => {

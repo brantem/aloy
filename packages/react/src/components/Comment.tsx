@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useSWRConfig } from 'swr';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -6,6 +7,7 @@ import { CheckCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 import type { Comment } from 'types';
 import { cn } from 'lib/helpers';
+import { useAppStore } from 'lib/stores';
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
@@ -54,6 +56,8 @@ export default function Comment({
   showTotalReplies = false,
   ...props
 }: CommentProps) {
+  const { mutate } = useSWRConfig();
+  const fetcher = useAppStore((state) => state.fetcher);
   const ref = useRef<HTMLDivElement>(null);
 
   return (
@@ -72,8 +76,12 @@ export default function Comment({
                 )}
                 onClick={async (e) => {
                   e.stopPropagation();
-                  console.log('COMPLETE', comment.pin_id, isCompleted);
-                  // TODO: refresh pins
+                  await fetcher(`/pins/${comment.pin_id}/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: isCompleted ? '0' : '1',
+                  });
+                  mutate(`/pins?_path=${window.location.pathname}`);
                   // should reset activeId and if inbox is currently open it should immediately pick the first pin
                 }}
               >
@@ -85,11 +93,11 @@ export default function Comment({
               onClick={async (e) => {
                 e.stopPropagation();
                 if (isRoot) {
-                  console.log('DELETE', comment.pin_id);
-                  // TODO: refresh pins
+                  await fetcher(`/pins/${comment.pin_id}`, { method: 'DELETE' });
+                  mutate(`/pins?_path=${window.location.pathname}`);
                 } else {
-                  console.log('DELETE', comment.id);
-                  // TODO: refresh comments
+                  await fetcher(`/comments/${comment.id}`, { method: 'DELETE' });
+                  mutate(`/pins/${comment.pin_id}/comments`);
                 }
               }}
             >

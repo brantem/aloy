@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import Textarea from 'react-textarea-autosize';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import { useSWRConfig } from 'swr';
 
-import { usePinStore } from 'lib/stores';
+import { useAppStore, usePinStore } from 'lib/stores';
 
 type AddCommentFormProps = {
   pinId: number | null;
@@ -10,6 +11,8 @@ type AddCommentFormProps = {
 };
 
 export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFormProps) {
+  const { mutate } = useSWRConfig();
+  const fetcher = useAppStore((state) => state.fetcher);
   const { tempPin, done } = usePinStore((state) => ({
     tempPin: state.tempPin,
     done: () => {
@@ -22,14 +25,22 @@ export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFor
 
   const createPin = async (text: string) => {
     if (!text) return;
-    console.log('POST', { _path: window.location.pathname, ...tempPin, text });
-    // TODO: refresh pins
+    await fetcher('/pins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _path: window.location.pathname, ...tempPin, text }),
+    });
+    mutate(`/pins?_path=${window.location.pathname}`);
   };
 
   const createComment = async (text: string) => {
     if (!text) return;
-    console.log('POST', pinId, { text });
-    // TODO: refresh comments
+    await fetcher(`/pins/${pinId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    mutate(`/pins/${pinId}/comments`);
   };
 
   return (

@@ -9,6 +9,11 @@ import './index.css';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Tiles n={8} />
-    <Aloy breakpoints={[640, 768, 1024, 1280]} />
+    <Aloy
+      apiUrl="http://localhost:8787"
+      appId="demo"
+      breakpoints={[640, 768, 1024, 1280]}
+      user={{ id: 'user-1', name: 'Gibran' }}
+    />
   </StrictMode>,
 );

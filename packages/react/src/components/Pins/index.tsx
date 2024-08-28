@@ -1,40 +1,13 @@
 import { useMemo } from 'react';
+import useSWR from 'swr';
 
 import Pin from './Pin';
 
 import type { Pin as P } from 'types';
 import { useDebounce, useCurrentBreakpoint } from 'lib/hooks';
 
-const createdAt = Date.now();
-
 const Pins = () => {
-  const { data } = {
-    data: {
-      pins: [
-        {
-          id: 1,
-          path: 'body > #root .flex:nth-child(11)',
-          w: 3008,
-          x: 0.024,
-          y: 0.238,
-          _x: 0.33643617021276595,
-          _y: 0.3713257348530294,
-          user: {
-            id: 'user-1',
-            name: 'User 1',
-          },
-          total_replies: 0,
-          completed_at: null,
-          comment: {
-            id: 1,
-            text: 'Test',
-            created_at: createdAt,
-            updated_at: createdAt,
-          },
-        },
-      ] as P[],
-    },
-  }; // TODO
+  const { data } = useSWR<{ pins: P[] }>(`/pins?_path=${window.location.pathname}`);
 
   const r = useDebounce(useCurrentBreakpoint(), 100);
   const pins = useMemo(() => {

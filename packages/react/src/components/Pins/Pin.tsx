@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useSWR from 'swr';
 
 import Comment from 'components/Comment';
 import AddCommentForm from 'components/AddCommentForm';
@@ -15,7 +16,7 @@ type ContentProps = {
 };
 
 const Content = ({ pin, isCompact }: ContentProps) => {
-  const { data } = { data: { comments: [] as C[] } };
+  const { data } = useSWR<{ comments: C[] }>(`/pins/${pin.id}/comments`);
   return (
     <div className="flex flex-col [&>*~*]:border-t [&>*~*]:border-neutral-200">
       <Comment
@@ -86,7 +87,7 @@ export default function Pin({ pin }: PinProps) {
       <div
         className={cn(
           '__aloy-pin absolute size-fit',
-          !isHidden && 'rounded-tl-0 border border-neutral-200 bg-white',
+          isHidden ? 'hidden' : 'rounded-tl-0 border border-neutral-200 bg-white',
           isHoverable && 'cursor-pointer',
           isExpanded
             ? 'z-[1003] rounded-lg shadow-sm'
