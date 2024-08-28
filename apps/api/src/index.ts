@@ -6,22 +6,32 @@ import { cors } from 'hono/cors';
 import type { User, Pin, Comment } from './types';
 
 interface Env {
-  Bindings: Bindings;
+  Bindings: Bindings & {
+    ALLOW_ORIGINS: string;
+  };
   Variables: {
-    '__aloy_app-id': string;
-    '__aloy_user-id': string;
+    appId: string;
+    userId: string;
   };
 }
 
 const app = new Hono<Env>();
 app.get('*', secureHeaders());
 app.use('*', logger());
-app.use('*', cors());
 
 app.use('*', async (c, next) => {
-  const appId = c.req.header('aloy-app-id');
+  console.log(c.env.ALLOW_ORIGINS);
+  return cors({
+    origin: c.env.ALLOW_ORIGINS || '*',
+    allowHeaders: ['Aloy-App-ID', 'Aloy-User-ID'],
+    exposeHeaders: ['X-Total-Count'],
+  })(c, next);
+});
+
+app.use('*', async (c, next) => {
+  const appId = c.req.header('Aloy-App-ID');
   if (!appId) return c.json({ error: { code: 'MISSING_APP_ID' } }, 400);
-  c.set('__aloy_app-id', appId);
+  c.set('appId', appId);
 
   await next();
 });
@@ -34,14 +44,14 @@ app.post('/users', async (c) => {
     ON CONFLICT (_id, app_id) DO UPDATE SET name = EXCLUDED.name
     RETURNING id
   `);
-  const userId = await stmt.bind(id, c.get('__aloy_app-id'), name).first('id');
+  const userId = await stmt.bind(id, c.get('appId'), name).first('id');
   return c.json({ user: { id: userId } }, 200);
 });
 
 app.use('*', async (c, next) => {
-  const userId = c.req.header('aloy-user-id');
+  const userId = c.req.header('Aloy-User-ID');
   if (!userId) return c.json({ error: { code: 'MISSING_USER_ID' } }, 400);
-  c.set('__aloy_user-id', userId);
+  c.set('userId', userId);
 
   await next();
 });
@@ -58,7 +68,7 @@ app.get('/pins', async (c) => {
     ORDER BY p.id DESC
   `);
   const { results } = await stmt
-    .bind(c.get('__aloy_app-id'), c.req.query('me') === '1' ? c.get('__aloy_user-id') : '', c.req.query('_path') || '')
+    .bind(c.get('appId'), c.req.query('me') === '1' ? c.get('userId') : '', c.req.query('_path') || '')
     .all<Omit<Pin, 'app_id' | '_path' | 'completed_by_id'> & { text: string }>();
   if (!results.length) return c.json({ pins: [] }, 200);
 
@@ -71,6 +81,7 @@ app.get('/pins', async (c) => {
   const [users, comments] = await Promise.all([getUsers(c.env.DB, userIds), getRootComments(c.env.DB, pinIds)]);
 
   const pins = results.map(({ user_id, ...pin }) => ({ ...pin, user: users[user_id], comment: comments[pin.id] }));
+  c.header('X-Total-Count', pins.length.toString());
   return c.json({ pins }, 200);
 });
 
@@ -83,7 +94,7 @@ app.post('/pins', async (c) => {
     RETURNING id, created_at
   `);
   const pin = await stmt
-    .bind(c.get('__aloy_app-id'), c.get('__aloy_user-id'), _path, path, w, _x, x, _y, y)
+    .bind(c.get('appId'), c.get('userId'), _path, path, w, _x, x, _y, y)
     .first<Pick<Pin, 'id' | 'created_at'>>();
   if (!pin) return c.json({ pin: null }, 500);
 
@@ -91,14 +102,14 @@ app.post('/pins', async (c) => {
     INSERT INTO comments (pin_id, user_id, text, created_at, updated_at)
     VALUES (?1, ?2, ?3, ?4, ?4)
   `);
-  await stmt2.bind(pin.id, c.get('__aloy_user-id'), text, pin.created_at).run();
+  await stmt2.bind(pin.id, c.get('userId'), text, pin.created_at).run();
 
   return c.json({ pin: { id: pin.id } }, 200);
 });
 
 app.delete('/pins/:id', async (c) => {
   const stmt = c.env.DB.prepare('DELETE FROM pins WHERE id = ? AND user_id = ?');
-  await stmt.bind(c.req.param('id'), c.get('__aloy_user-id')).run();
+  await stmt.bind(c.req.param('id'), c.get('userId')).run();
   return c.json({ success: true }, 200);
 });
 
@@ -117,7 +128,7 @@ app.post('/pins/:id/complete', async (c) => {
       WHERE id = ?1 AND completed_at IS NOT NULL
     `);
   }
-  await stmt.bind(c.req.param('id'), c.get('__aloy_user-id')).run();
+  await stmt.bind(c.req.param('id'), c.get('userId')).run();
   return c.json({ success: true }, 200);
 });
 
@@ -135,26 +146,27 @@ app.get('/pins/:id/comments', async (c) => {
   const userIds = [...new Set(results.map((comment) => comment.user_id))];
   const users = await getUsers(c.env.DB, userIds);
 
+  c.header('X-Total-Count', results.length.toString());
   return c.json({ comments: results.map(({ user_id, ...comment }) => ({ ...comment, user: users[user_id] })) }, 200);
 });
 
 app.post('/pins/:id/comments', async (c) => {
   const { text } = await c.req.json(); // TODO: validate
   const stmt = c.env.DB.prepare('INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id');
-  const commentId = await stmt.bind(c.req.param('id'), c.get('__aloy_user-id'), text).first('id');
+  const commentId = await stmt.bind(c.req.param('id'), c.get('userId'), text).first('id');
   return c.json({ comment: { id: commentId } }, 200);
 });
 
 app.patch('/comments/:id', async (c) => {
   const { text } = await c.req.json(); // TODO: validate
   const stmt = c.env.DB.prepare('UPDATE comments SET text = ?3 WHERE id = ?1 AND user_id = ?2');
-  await stmt.bind(c.req.param('id'), c.get('__aloy_user-id'), text).run();
+  await stmt.bind(c.req.param('id'), c.get('userId'), text).run();
   return c.json({ success: true }, 200);
 });
 
 app.delete('/comments/:id', async (c) => {
   const stmt = c.env.DB.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?');
-  await stmt.bind(c.req.param('id'), c.get('__aloy_user-id')).run();
+  await stmt.bind(c.req.param('id'), c.get('userId')).run();
   return c.json({ success: true }, 200);
 });
 
@@ -172,17 +184,17 @@ const getUsers = async (d1: D1Database, ids: string[]) => {
   );
 };
 
-export const getRootComments = async (d1: D1Database, pinIds: number[]) => {
+export const getRootComments = async (d1: D1Database, ids: number[]) => {
   type Row = Pick<Comment, 'id' | 'pin_id' | 'text' | 'created_at' | 'updated_at'>;
 
   const stmt = d1.prepare(`
     SELECT id, pin_id, text, created_at, updated_at
     FROM comments
-    WHERE pin_id IN (${Array.from({ length: pinIds.length }).fill('?').join(',')})
+    WHERE pin_id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
     GROUP BY pin_id
     HAVING MIN(created_at)
   `);
-  return (await stmt.bind(...pinIds).all<Row>()).results.reduce(
+  return (await stmt.bind(...ids).all<Row>()).results.reduce(
     (comments, { pin_id, ...comment }) => ({ ...comments, [pin_id]: comment }),
     {} as { [id: string]: Omit<Row, 'pin_id'> },
   );

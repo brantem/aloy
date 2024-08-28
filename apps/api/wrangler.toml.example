@@ -3,6 +3,9 @@ name = "aloy"
 main = "src/index.ts"
 compatibility_date = "2024-08-21"
 
+[vars]
+ALLOW_ORIGINS = "*"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "aloy"
