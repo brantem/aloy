@@ -16,7 +16,7 @@ app.use('*', logger());
 app.use('*', async (c, next) => {
   return cors({
     origin: c.env.ALLOW_ORIGINS || '*',
-    allowHeaders: ['Aloy-App-ID', 'Aloy-User-ID'],
+    allowHeaders: ['Content-Type', 'Aloy-App-ID', 'Aloy-User-ID'],
     exposeHeaders: ['X-Total-Count'],
   })(c, next);
 });
