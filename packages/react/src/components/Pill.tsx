@@ -74,7 +74,7 @@ export default function Pill() {
     >
       <div
         className={cn(
-          'flex items-stretch gap-1.5 rounded-full border border-neutral-200 bg-white p-1.5 shadow-sm transition-shadow',
+          'flex items-stretch gap-1.5 rounded-full border border-neutral-200 bg-white p-1.5 shadow-sm transition-all',
           isInboxOpen && 'shadow-[100px_-50px_250px_100px_rgb(142,144,249,.5),-100px_0_250px_100px_rgb(255,59,139,.5)]',
         )}
       >
