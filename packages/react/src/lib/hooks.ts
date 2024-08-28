@@ -1,8 +1,9 @@
 import { useState, useLayoutEffect, useEffect } from 'react';
+import useSWR from 'swr';
 
-import type { PinPosition } from 'types';
+import type { PinPosition, Pin } from 'types';
 import { isElementHidden } from 'lib/helpers';
-import { useAppStore } from 'lib/stores';
+import { useAppStore, usePinStore } from 'lib/stores';
 
 export const useDebounce = <T>(a: T, delay: number) => {
   const [b, setB] = useState<T>(a);
@@ -57,4 +58,55 @@ export const usePinPosition = (p: PinPosition) => {
   }, [p, size]);
 
   return position;
+};
+
+export const usePins = () => {
+  const r = useCurrentBreakpoint();
+
+  const { data, isLoading } = useSWR<{ nodes: Pin[] }>(`/pins?_path=${window.location.pathname}`);
+  const nodes = r
+    ? (data?.nodes || []).filter((pin) => {
+        if (r.start === 0 && r.end === 0) return true;
+        if (r.start === 0 && r.end !== 0) return pin.w <= r.end;
+        if (r.start !== 0 && r.end === 0) return pin.w >= r.start;
+        return pin.w >= r.start && pin.w <= r.end;
+      })
+    : [];
+
+  const { activeId, setActiveId } = usePinStore((state) => ({
+    activeId: state.activeId,
+    setActiveId: state.setActiveId,
+  }));
+
+  return {
+    nodes,
+    isLoading,
+
+    activeId,
+    setActiveId(v: 'first' | number) {
+      if (v === 'first') v = nodes[0].id;
+      // if v is a negative number, find other id than v * -1 else 0
+      if (v < 0) v = nodes.find((node) => node.id !== (v as number) * -1)?.id || 0;
+
+      setActiveId(v, false);
+
+      if (v === 0) return;
+      setTimeout(() => {
+        const pin = document.getElementById(`__aloy-pin-${v}`);
+        if (pin) pin.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }, 0);
+    },
+  } as const;
+};
+
+export const useEscape = (cb: () => void) => {
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      cb();
+    };
+
+    document.addEventListener('keydown', handleKeydown);
+    return () => document.removeEventListener('keydown', handleKeydown);
+  }, []);
 };

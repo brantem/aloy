@@ -7,8 +7,8 @@ import Inbox from 'components/Inbox';
 import Pill from 'components/Pill';
 import Pins from 'components/Pins';
 
-import { useAppStore } from 'lib/stores';
 import { State } from 'types';
+import { useAppStore } from 'lib/stores';
 
 export type AloyProps = {
   apiUrl: string;
@@ -29,8 +29,11 @@ const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
   };
 };
 
+const key = '__aloy-user-id';
+
 export default function Aloy(props: AloyProps) {
   const { apiUrl, appId, breakpoints, user } = processProps(props);
+
   const { fetcher, load, isHidden, isAddingComment } = useAppStore((state) => ({
     fetcher: state.fetcher,
     load: state.load,
@@ -41,9 +44,9 @@ export default function Aloy(props: AloyProps) {
   useEffect(() => {
     if (!apiUrl || !appId || !user.id || !user.name) return;
     (async () => {
-      const key = '__aloy-user-id';
       let userId = Cookies.get(key);
       if (userId) return load({ apiUrl, appId, userId, breakpoints });
+
       const res = await fetch(`${apiUrl}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Aloy-App-ID': appId },
@@ -51,6 +54,7 @@ export default function Aloy(props: AloyProps) {
       });
       userId = (await res.json()).user.id;
       if (!userId) return; // TODO
+
       Cookies.set(key, userId, { expires: new Date(new Date().getTime() + 1 * 60 * 1000) /* 1 minute */ });
       load({ apiUrl, appId, userId, breakpoints });
     })();

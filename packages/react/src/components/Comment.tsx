@@ -8,11 +8,16 @@ import { CheckCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import type { Comment } from 'types';
 import { cn } from 'lib/helpers';
 import { useAppStore } from 'lib/stores';
+import { usePins } from 'lib/hooks';
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
 
-const CreatedAt = ({ children }: { children: Comment['created_at'] }) => {
+type CreatedAtProps = {
+  children: Comment['created_at'];
+};
+
+const CreatedAt = ({ children }: CreatedAtProps) => {
   const enterTimeoutRef = useRef<NodeJS.Timeout>();
 
   const [isRelative, setIsRelative] = useState(true);
@@ -20,9 +25,7 @@ const CreatedAt = ({ children }: { children: Comment['created_at'] }) => {
   return (
     <span
       className="shrink-0 text-sm leading-5 text-neutral-400"
-      onMouseEnter={() => {
-        enterTimeoutRef.current = setTimeout(() => setIsRelative(false), 250);
-      }}
+      onMouseEnter={() => (enterTimeoutRef.current = setTimeout(() => setIsRelative(false), 250))}
       onMouseLeave={() => {
         clearTimeout(enterTimeoutRef.current);
         setIsRelative(true);
@@ -57,8 +60,10 @@ export default function Comment({
   ...props
 }: CommentProps) {
   const { mutate } = useSWRConfig();
-  const fetcher = useAppStore((state) => state.fetcher);
   const ref = useRef<HTMLDivElement>(null);
+
+  const fetcher = useAppStore((state) => state.fetcher);
+  const { activeId, setActiveId } = usePins();
 
   return (
     <div ref={ref} className={cn('relative w-72 p-3 text-sm', isFixed && 'h-36 pb-5', className)} {...props}>
@@ -82,7 +87,6 @@ export default function Comment({
                     body: isCompleted ? '0' : '1',
                   });
                   mutate(`/pins?_path=${window.location.pathname}`);
-                  // should reset activeId and if inbox is currently open it should immediately pick the first pin
                 }}
               >
                 <CheckCircleIcon className="size-5" />
@@ -94,10 +98,11 @@ export default function Comment({
                 e.stopPropagation();
                 if (isRoot) {
                   await fetcher(`/pins/${comment.pin_id}`, { method: 'DELETE' });
-                  mutate(`/pins?_path=${window.location.pathname}`);
+                  await mutate(`/pins?_path=${window.location.pathname}`);
+                  if (comment.pin_id === activeId) setActiveId(comment.pin_id * -1);
                 } else {
                   await fetcher(`/comments/${comment.id}`, { method: 'DELETE' });
-                  mutate(`/pins/${comment.pin_id}/comments`);
+                  await mutate(`/pins/${comment.pin_id}/comments`);
                 }
               }}
             >

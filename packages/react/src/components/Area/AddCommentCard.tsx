@@ -5,8 +5,13 @@ import AddCommentForm from 'components/AddCommentForm';
 import type { PinPosition } from 'types';
 import { usePinPosition } from 'lib/hooks';
 
-const AddCommentCard = ({ p }: { p: PinPosition }) => {
+type AddCommentCardProps = {
+  p: PinPosition;
+};
+
+export default function AddCommentCard({ p }: AddCommentCardProps) {
   const position = usePinPosition(p);
+
   if (!position) return null;
 
   return createPortal(
@@ -22,6 +27,4 @@ const AddCommentCard = ({ p }: { p: PinPosition }) => {
     </div>,
     document.body,
   );
-};
-
-export default AddCommentCard;
+}

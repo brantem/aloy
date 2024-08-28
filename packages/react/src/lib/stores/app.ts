@@ -17,7 +17,9 @@ interface AppState {
 
 export const useAppStore = create<AppState>()((set) => ({
   isHidden: true,
-  fetcher: () => Promise.resolve(),
+  fetcher() {
+    return Promise.resolve();
+  },
   breakpoints: [],
   load({ apiUrl, appId, userId, ...state }) {
     set({

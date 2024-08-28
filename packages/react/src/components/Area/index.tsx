@@ -4,33 +4,24 @@ import { finder } from '@medv/finder';
 import AddCommentCard from './AddCommentCard';
 
 import { State } from 'types';
-import { useWindowSize } from 'lib/hooks';
+import { useEscape, useWindowSize } from 'lib/hooks';
 import { useAppStore, usePinStore } from 'lib/stores';
 
 export default function Area() {
   const size = useWindowSize();
+
   const close = useAppStore((state) => () => state.setActive(State.Nothing));
   const { tempPin, setTempPin, handleEscape } = usePinStore((state) => ({
     tempPin: state.tempPin,
     setTempPin: state.setTempPin,
-    handleEscape: () => {
+    handleEscape() {
       const hadTempPin = !!state.tempPin;
       state.setTempPin(null);
       if (!hadTempPin) close();
     },
   }));
 
-  useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      handleEscape();
-    };
-
-    document.addEventListener('keydown', handleKeydown);
-    return () => {
-      document.removeEventListener('keydown', handleKeydown);
-    };
-  }, [tempPin]);
+  useEscape(handleEscape);
 
   useEffect(() => {
     if (!size) return;
@@ -53,11 +44,10 @@ export default function Area() {
     };
 
     document.addEventListener('click', handleClick);
-    return () => {
-      document.removeEventListener('click', handleClick);
-    };
+    return () => document.removeEventListener('click', handleClick);
   }, [size]);
 
   if (!tempPin) return null;
+
   return <AddCommentCard p={tempPin} />;
 }

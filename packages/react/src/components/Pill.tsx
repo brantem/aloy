@@ -4,6 +4,7 @@ import { ChatBubbleOvalLeftIcon, InboxIcon, XMarkIcon } from '@heroicons/react/2
 import { State } from 'types';
 import { useAppStore, usePinStore } from 'lib/stores';
 import { cn } from 'lib/helpers';
+import { usePins } from 'lib/hooks';
 
 const useToggle = (v: State) => {
   const reset = usePinStore((state) => () => state.reset());
@@ -11,9 +12,11 @@ const useToggle = (v: State) => {
     const isActive = state.active === v;
     return {
       isActive,
-      toggle: () => {
+      toggle(cb?: (isActive: boolean) => void) {
         reset();
-        state.setActive(isActive ? State.Nothing : v);
+        const active = isActive ? State.Nothing : v;
+        state.setActive(active);
+        cb?.(active !== State.Nothing);
       },
     };
   });
@@ -27,7 +30,7 @@ const AddCommentButton = () => {
         'flex size-9 items-center justify-center rounded-full text-neutral-900',
         isActive ? 'bg-neutral-200' : 'hover:bg-neutral-100',
       )}
-      onClick={toggle}
+      onClick={() => toggle()}
     >
       <ChatBubbleOvalLeftIcon className="size-5" />
     </button>
@@ -36,13 +39,14 @@ const AddCommentButton = () => {
 
 const ShowInboxButton = () => {
   const { isActive, toggle } = useToggle(State.ShowInbox);
+  const { setActiveId } = usePins();
   return (
     <button
       className={cn(
         'flex size-9 items-center justify-center rounded-full text-neutral-900',
         isActive ? 'bg-neutral-200' : 'hover:bg-neutral-100',
       )}
-      onClick={toggle}
+      onClick={() => toggle((isActive) => isActive && setActiveId('first'))}
     >
       <InboxIcon className="size-5" />
     </button>
@@ -51,7 +55,6 @@ const ShowInboxButton = () => {
 
 const CloseButton = () => {
   const close = useAppStore((state) => state.close);
-
   return (
     <button
       className="flex size-9 items-center justify-center rounded-full text-neutral-900 hover:bg-rose-50 hover:text-rose-500"

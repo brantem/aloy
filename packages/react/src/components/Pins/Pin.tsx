@@ -45,7 +45,11 @@ type PinProps = {
 
 export default function Pin({ pin }: PinProps) {
   const position = usePinPosition(pin);
-  const { active, setActive } = useAppStore((state) => ({ active: state.active, setActive: state.setActive }));
+
+  const { active, setActive } = useAppStore((state) => ({
+    active: state.active,
+    setActive: state.setActive,
+  }));
   const { isHovered, setHoveredId, isActive, isActiveIdLocked, setActiveId } = usePinStore((state) => {
     const isActive = pin.id === state.activeId;
     return {
@@ -53,12 +57,10 @@ export default function Pin({ pin }: PinProps) {
       setHoveredId: state.setHoveredId,
       isActive,
       isActiveIdLocked: isActive && state.isActiveIdLocked,
-      setActiveId: (v: number) => {
-        if (active === State.AddComment) {
-          setActive(State.Nothing);
-          state.setTempPin(null);
-        }
-        state.setActiveId(v, !!v);
+      setActiveId(v: number) {
+        if (active !== State.AddComment) return state.setActiveId(v, !!v);
+        setActive(State.Nothing);
+        state.setTempPin(null);
       },
     };
   });
@@ -75,15 +77,8 @@ export default function Pin({ pin }: PinProps) {
 
   return createPortal(
     <>
-      {isExpanded && (
-        <div
-          className="fixed inset-0 z-[1001]"
-          onClick={() => {
-            if (isInboxOpen) return;
-            setActiveId(0);
-          }}
-        />
-      )}
+      {isExpanded && <div className="fixed inset-0 z-[1001]" onClick={() => !isInboxOpen && setActiveId(0)} />}
+
       <div
         className={cn(
           '__aloy-pin absolute size-fit !rounded-tl-none border border-neutral-200 bg-white',
@@ -113,6 +108,7 @@ export default function Pin({ pin }: PinProps) {
         }}
       >
         <div id={`__aloy-pin-${pin.id}`} />
+
         {!isHidden &&
           (isExpanded ? (
             <Content pin={pin} isCompact={isInboxOpen ? !isActiveIdLocked : isHoverable} />

@@ -7,10 +7,8 @@ interface PinState {
   setHoveredId(hoveredId: number): void;
 
   activeId: number;
-  setActiveId(activeId: number, isLocked?: boolean): void;
-
   isActiveIdLocked: boolean;
-  setIsActiveIdLocked(isActiveIdLocked: boolean): void;
+  setActiveId(activeId: number, isLocked?: boolean): void;
 
   tempPin: PinPosition | null;
   setTempPin(position: PinPosition | null): void;
@@ -37,9 +35,6 @@ export const usePinStore = create<PinState>()((set) => ({
     } else {
       set({ hoveredId: 0, activeId });
     }
-  },
-  setIsActiveIdLocked(isActiveIdLocked) {
-    set({ isActiveIdLocked });
   },
   setTempPin(tempPin) {
     set({ tempPin });

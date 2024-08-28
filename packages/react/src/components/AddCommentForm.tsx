@@ -12,10 +12,11 @@ type AddCommentFormProps = {
 
 export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFormProps) {
   const { mutate } = useSWRConfig();
+
   const fetcher = useAppStore((state) => state.fetcher);
-  const { tempPin, done } = usePinStore((state) => ({
+  const { tempPin, reset } = usePinStore((state) => ({
     tempPin: state.tempPin,
-    done: () => {
+    reset() {
       setText('');
       state.setTempPin(null);
     },
@@ -50,7 +51,7 @@ export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFor
       onSubmit={async (e) => {
         e.preventDefault();
         await (pinId ? createComment : createPin)(text.trim()); // lol
-        done();
+        reset();
       }}
     >
       <Textarea
@@ -60,6 +61,7 @@ export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFor
         autoFocus={shouldAutoFocus}
         minRows={3}
       />
+
       <div className="flex items-center justify-end p-1.5">
         <button
           className="hover:be-neutral-50 flex size-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-50 hover:text-neutral-500"
