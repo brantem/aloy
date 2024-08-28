@@ -1,0 +1,9 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "aloy"
+main = "src/index.ts"
+compatibility_date = "2024-08-21"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aloy"
+database_id = "DATABASE_ID"
