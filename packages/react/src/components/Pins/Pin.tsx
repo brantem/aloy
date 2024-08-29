@@ -118,7 +118,8 @@ export default function Pin({ pin }: PinProps) {
         onClick={() => {
           if (isHidden) return;
           setActiveId(pin.id, true);
-          // should we move the pin into the middle of the screen here? will it be annoying?
+          const el = document.getElementById(`__aloy-pin-${pin.id}`)!;
+          el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
           clearTimeout(enterTimeoutRef.current);
           clearTimeout(leaveTimeoutRef.current);
         }}
