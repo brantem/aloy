@@ -117,7 +117,7 @@ export default function Pin({ pin }: PinProps) {
         style={{ top: position.top, left: position.left }}
         onClick={() => {
           if (isHidden) return;
-          setActiveId(pin.id, true);
+          setActiveId(pin.id, isActive);
           const el = document.getElementById(`__aloy-pin-${pin.id}`)!;
           el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
           clearTimeout(enterTimeoutRef.current);
