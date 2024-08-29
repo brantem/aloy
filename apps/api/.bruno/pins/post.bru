@@ -1,0 +1,29 @@
+meta {
+  name: /
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{url}}/pins
+  body: json
+  auth: none
+}
+
+headers {
+  Aloy-App-ID: {{appId}}
+  Aloy-User-ID: {{userId}}
+}
+
+body:json {
+  {
+    "_path": "/",
+    "path": "body",
+    "w": 1000,
+    "_x": 0.1,
+    "x": 0.1,
+    "_y": 0.1,
+    "y": 0.1,
+    "text": "This is amazing!"
+  }
+}

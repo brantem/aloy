@@ -1,0 +1,16 @@
+meta {
+  name: /
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{url}}/pins
+  body: none
+  auth: none
+}
+
+headers {
+  Aloy-App-ID: {{appId}}
+  Aloy-User-ID: {{userId}}
+}

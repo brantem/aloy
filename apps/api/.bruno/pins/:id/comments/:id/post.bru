@@ -1,0 +1,22 @@
+meta {
+  name: /
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{url}}/pins/1/comments/1
+  body: json
+  auth: none
+}
+
+headers {
+  Aloy-App-ID: {{appId}}
+  Aloy-User-ID: {{userId}}
+}
+
+body:json {
+  {
+    "text": "Thanks a lot!"
+  }
+}
