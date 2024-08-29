@@ -118,6 +118,7 @@ export default function Pin({ pin }: PinProps) {
         onClick={() => {
           if (isHidden) return;
           setActiveId(pin.id, true);
+          // should we move the pin into the middle of the screen here? will it be annoying?
           clearTimeout(enterTimeoutRef.current);
           clearTimeout(leaveTimeoutRef.current);
         }}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useImperativeHandle, forwardRef } from 'react';
 import { SWRConfig } from 'swr';
 import Cookies from 'js-cookie';
 
@@ -8,16 +8,18 @@ import Pill from 'components/Pill';
 import Pins from 'components/Pins';
 
 import { State } from 'types';
+import type { User } from 'types/external';
 import { useAppStore } from 'lib/stores';
+
+export type AloyHandle = {
+  saveUser(user: User): Promise<number>;
+};
 
 export type AloyProps = {
   apiUrl: string;
   appId: string;
   breakpoints: number[];
-  user: {
-    id: string;
-    name: string;
-  };
+  user: User;
 };
 
 const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
@@ -31,32 +33,41 @@ const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
 
 const key = '__aloy-user-id';
 
-export default function Aloy(props: AloyProps) {
+const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
   const { apiUrl, appId, breakpoints, user } = processProps(props);
 
-  const { fetcher, load, isHidden, isAddingComment } = useAppStore((state) => ({
+  const { fetcher, setUser, load, isHidden, isAddingComment } = useAppStore((state) => ({
     fetcher: state.fetcher,
+    setUser: state.setUser,
     load: state.load,
     isHidden: state.isHidden,
     isAddingComment: state.active === State.AddComment,
   }));
 
+  const saveUser = async (user: User) => {
+    const res = await fetch(`${apiUrl}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Aloy-App-ID': appId },
+      body: JSON.stringify(user),
+    });
+    const userId = (await res.json()).user.id;
+    if (!userId) return; // TODO
+
+    Cookies.set(key, userId, { expires: new Date(new Date().getTime() + 5 * 60 * 1000) /* 5 minutes */ });
+    setUser({ id: userId, name: user.name });
+    return userId;
+  };
+
+  useImperativeHandle(ref, () => ({
+    saveUser,
+  }));
+
   useEffect(() => {
     if (!apiUrl || !appId || !user.id || !user.name) return;
     (async () => {
-      let userId = Cookies.get(key);
-      if (userId) return load({ apiUrl, appId, userId, breakpoints });
-
-      const res = await fetch(`${apiUrl}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Aloy-App-ID': appId },
-        body: JSON.stringify(user),
-      });
-      userId = (await res.json()).user.id;
-      if (!userId) return; // TODO
-
-      Cookies.set(key, userId, { expires: new Date(new Date().getTime() + 5 * 60 * 1000) /* 5 minutes */ });
-      load({ apiUrl, appId, userId, breakpoints });
+      const userId = parseInt(Cookies.get(key) || '');
+      if (!isNaN(userId)) return load({ apiUrl, appId, user: { id: userId, name: user.name }, breakpoints });
+      load({ apiUrl, appId, user: { id: await saveUser(user), name: user.name }, breakpoints });
     })();
   }, []);
 
@@ -70,4 +81,6 @@ export default function Aloy(props: AloyProps) {
       <Pins />
     </SWRConfig>
   );
-}
+});
+
+export default Aloy;

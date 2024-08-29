@@ -4,8 +4,8 @@ export enum State {
   ShowInbox,
 }
 
-type User = {
-  id: string;
+export type User = {
+  id: number;
   name: string;
 };
 

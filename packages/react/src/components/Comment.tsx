@@ -62,13 +62,15 @@ export default function Comment({
   const { mutate } = useSWRConfig();
   const ref = useRef<HTMLDivElement>(null);
 
-  const fetcher = useAppStore((state) => state.fetcher);
+  const { user, fetcher } = useAppStore((state) => ({ user: state.user, fetcher: state.fetcher }));
   const { activeId, setActiveId } = usePins();
 
   return (
     <div ref={ref} className={cn('relative w-72 p-3 text-sm', isFixed && 'h-36 pb-5', className)} {...props}>
       <div className="flex items-center justify-between gap-3">
-        <p className="mb-0.5 truncate font-medium leading-5 text-neutral-700">{comment.user.name}</p>
+        <p className="mb-0.5 truncate font-medium leading-5 text-neutral-700">
+          {comment.user.id === user.id ? user.name : comment.user.name}
+        </p>
 
         {!isReadonly && (
           <div className="flex gap-[3px]">
