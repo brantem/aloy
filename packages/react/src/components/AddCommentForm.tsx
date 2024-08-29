@@ -10,6 +10,8 @@ type AddCommentFormProps = {
   shouldAutoFocus?: boolean;
 };
 
+// TODO: not autofocus
+
 export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFormProps) {
   const { mutate } = useSWRConfig();
 

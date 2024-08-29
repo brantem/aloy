@@ -43,6 +43,8 @@ type PinProps = {
   pin: Pin;
 };
 
+// TODO: use floating-ui
+
 export default function Pin({ pin }: PinProps) {
   const position = usePinPosition(pin);
 

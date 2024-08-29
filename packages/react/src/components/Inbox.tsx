@@ -8,7 +8,7 @@ import { useAppStore } from 'lib/stores';
 import { cn } from 'lib/helpers';
 import { useEscape, usePins } from 'lib/hooks';
 
-// TODO: the active pin must always be in the center
+// TODO: should be scrollable
 
 export default function Inbox() {
   const { nodes, activeId, setActiveId } = usePins();
