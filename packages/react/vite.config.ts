@@ -11,7 +11,7 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/Aloy.tsx'),
       name: 'Aloy',
       formats: ['es', 'umd'],
-      fileName: 'index.js',
+      fileName: 'index',
     },
     rollupOptions: {
       external: ['react', 'react-dom', 'react/jsx-runtime'],
