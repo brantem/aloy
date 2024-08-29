@@ -39,14 +39,19 @@ const AddCommentButton = () => {
 
 const ShowInboxButton = () => {
   const { isActive, toggle } = useToggle(State.ShowInbox);
-  const { setActiveId } = usePins();
+  const { activeId, setActiveId } = usePins();
   return (
     <button
       className={cn(
         'flex size-9 items-center justify-center rounded-full text-neutral-900',
         isActive ? 'bg-neutral-200' : 'hover:bg-neutral-100',
       )}
-      onClick={() => toggle((isActive) => isActive && setActiveId('first'))}
+      onClick={() => {
+        toggle((isActive) => {
+          if (!isActive) return;
+          setActiveId(activeId || 'first');
+        });
+      }}
     >
       <InboxIcon className="size-5" />
     </button>

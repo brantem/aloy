@@ -16,19 +16,16 @@ interface PinState {
   reset(): void;
 }
 
-const defaultState = {
-  hoveredId: 0,
-  activeId: 0,
-  isActiveIdLocked: false,
-  tempPin: null,
-};
-
 export const usePinStore = create<PinState>()((set) => ({
-  ...defaultState,
-
+  hoveredId: 0,
   setHoveredId(hoveredId) {
     set({ hoveredId });
   },
+
+  activeId: 0,
+  // when isActiveIdLocked === true, both the root and comments are visible;
+  // otherwise, only the root is visible.
+  isActiveIdLocked: false,
   setActiveId(activeId, isLocked) {
     if (isLocked !== undefined) {
       set({ hoveredId: 0, activeId, isActiveIdLocked: isLocked });
@@ -36,10 +33,13 @@ export const usePinStore = create<PinState>()((set) => ({
       set({ hoveredId: 0, activeId });
     }
   },
+
+  tempPin: null,
   setTempPin(tempPin) {
     set({ tempPin });
   },
+
   reset() {
-    set(defaultState);
+    set({ isActiveIdLocked: false, tempPin: null });
   },
 }));

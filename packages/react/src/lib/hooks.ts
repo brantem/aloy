@@ -83,12 +83,12 @@ export const usePins = () => {
     isLoading,
 
     activeId,
-    setActiveId(v: 'first' | number) {
+    setActiveId(v: 'first' | number, isLocked = false) {
       if (v === 'first') v = nodes[0].id;
       // if v is a negative number, find other id than v * -1 else 0
       if (v < 0) v = nodes.find((node) => node.id !== (v as number) * -1)?.id || 0;
 
-      setActiveId(v, false);
+      setActiveId(v, isLocked);
 
       if (v === 0) return;
       setTimeout(() => {

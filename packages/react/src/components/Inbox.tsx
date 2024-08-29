@@ -11,16 +11,14 @@ import { useEscape, usePins } from 'lib/hooks';
 // TODO: the active pin must always be in the center
 
 export default function Inbox() {
+  const { nodes, activeId, setActiveId } = usePins();
+
   const { isOpen, handleEscape } = useAppStore((state) => ({
     isOpen: state.active === State.ShowInbox,
     handleEscape() {
       state.setActive(State.Nothing);
-      setActiveId(0);
     },
   }));
-
-  const { nodes, activeId, setActiveId } = usePins();
-
   useEscape(handleEscape);
 
   if (!isOpen) return null;

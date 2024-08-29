@@ -57,8 +57,9 @@ export default function Pin({ pin }: PinProps) {
       setHoveredId: state.setHoveredId,
       isActive,
       isActiveIdLocked: isActive && state.isActiveIdLocked,
-      setActiveId(v: number) {
-        if (active !== State.AddComment) return state.setActiveId(v, !!v);
+      setActiveId(v: number, isLocked = false) {
+        state.setActiveId(v, isLocked);
+        if (active !== State.AddComment) return;
         setActive(State.Nothing);
         state.setTempPin(null);
       },
@@ -71,13 +72,35 @@ export default function Pin({ pin }: PinProps) {
   if (!position) return null;
 
   const isInboxOpen = active === State.ShowInbox;
-  const isExpanded = isHovered || isActive;
+  // the pin will only be expanded when:
+  // 1. hovered (root)
+  // 2. clicked (root + comments)
+  // 3. the inbox is open, and the pin is active (root)
+  // 4. the inbox is open, and the pin is active and locked (root + comments)
+  const isExpanded = isHovered ? true : isInboxOpen ? isActive : isActive && isActiveIdLocked;
+  // The pin will only be visible when:
+  // 1. it is not complete
+  // 2. the inbox is open, regardless of the completion status
   const isHidden = !isInboxOpen && pin.completed_at !== null;
+  // The pin will be hoverable (root visible) when:
+  // 1. it is not hidden
+  // 2. it is locked (comments are visible)
   const isHoverable = !isHidden && (isActive ? !isActiveIdLocked : true);
 
   return createPortal(
     <>
-      {isExpanded && <div className="fixed inset-0 z-[1001]" onClick={() => !isInboxOpen && setActiveId(0)} />}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 z-[1001]"
+          onClick={() => {
+            if (isInboxOpen) {
+              setActiveId(pin.id);
+            } else {
+              setActiveId(0);
+            }
+          }}
+        />
+      )}
 
       <div
         className={cn(
@@ -92,7 +115,7 @@ export default function Pin({ pin }: PinProps) {
         style={{ top: position.top, left: position.left }}
         onClick={() => {
           if (isHidden) return;
-          setActiveId(pin.id);
+          setActiveId(pin.id, true);
           clearTimeout(enterTimeoutRef.current);
           clearTimeout(leaveTimeoutRef.current);
         }}
