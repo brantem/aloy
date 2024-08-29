@@ -6,10 +6,11 @@ type Fetcher<T = unknown> = (input: RequestInfo | URL, init?: RequestInit) => Pr
 
 interface AppState {
   isHidden: boolean;
+  close(): void;
+
   fetcher: Fetcher;
   breakpoints: number[];
   load(state: { apiUrl: string; appId: string; userId: string } & Pick<AppState, 'breakpoints'>): void;
-  close(): void;
 
   active: State;
   setActive(active: State): void;
@@ -17,6 +18,10 @@ interface AppState {
 
 export const useAppStore = create<AppState>()((set) => ({
   isHidden: true,
+  close() {
+    set({ isHidden: true });
+  },
+
   fetcher() {
     return Promise.resolve();
   },
@@ -31,9 +36,6 @@ export const useAppStore = create<AppState>()((set) => ({
       },
       ...state,
     });
-  },
-  close() {
-    set({ isHidden: true });
   },
 
   active: State.Nothing,
