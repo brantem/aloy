@@ -15,7 +15,7 @@
   }
 }
 
-body {
+html {
   --color: #aaa;
   --background-color: #e5e5e5;
 
@@ -26,11 +26,18 @@ body {
   background-position:
     0 0,
     10px 10px;
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @media (prefers-color-scheme: dark) {
-  body {
+  html {
     --color: #666;
     --background-color: #262626;
   }
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
