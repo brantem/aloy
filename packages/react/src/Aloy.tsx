@@ -74,7 +74,14 @@ const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
   if (isHidden) return;
 
   return (
-    <SWRConfig value={{ fetcher }}>
+    <SWRConfig
+      value={{
+        async fetcher(url: string) {
+          const res = await fetcher(url);
+          return await res.json();
+        },
+      }}
+    >
       {isAddingComment && <Area />}
       <Inbox />
       <Pill />

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import { State, type User } from 'types';
 
-type Fetcher<T = unknown> = (input: RequestInfo | URL, init?: RequestInit) => Promise<T>;
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 type DeepNonNullable<T> = {
   [K in keyof T]: DeepNonNullable<T[K] & {}>;
@@ -29,7 +29,7 @@ export const useAppStore = create<AppState>()((set) => ({
   },
 
   fetcher() {
-    return Promise.resolve();
+    return Promise.resolve(new Response());
   },
   user: null as unknown as User,
   setUser(user) {
@@ -41,8 +41,7 @@ export const useAppStore = create<AppState>()((set) => ({
       isHidden: false,
       async fetcher(input, init) {
         const headers = { ...(init?.headers || {}), 'Aloy-App-ID': appId, 'Aloy-User-ID': state.user.id.toString() };
-        const res = await fetch(apiUrl + input, { ...(init || {}), headers });
-        return await res.json();
+        return fetch(apiUrl + input, { ...(init || {}), headers });
       },
       ...state,
     });

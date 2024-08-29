@@ -42,4 +42,9 @@ app.use('*', async (c, next) => {
 app.route('/pins', pins);
 app.route('/comments', comments);
 
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({ error: { code: 'INTERNAL_SERVER_ERROR' } }, 500);
+});
+
 export default app;

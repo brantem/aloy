@@ -84,11 +84,12 @@ export default function Comment({
                 )}
                 onClick={async (e) => {
                   e.stopPropagation();
-                  await fetcher(`/pins/${comment.pin_id}/complete`, {
+                  const res = await fetcher(`/pins/${comment.pin_id}/complete`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: isCompleted ? '0' : '1',
                   });
+                  if (!res.ok) return;
                   mutate(`/pins?_path=${window.location.pathname}`);
                 }}
               >
@@ -100,11 +101,13 @@ export default function Comment({
               onClick={async (e) => {
                 e.stopPropagation();
                 if (isRoot) {
-                  await fetcher(`/pins/${comment.pin_id}`, { method: 'DELETE' });
+                  const res = await fetcher(`/pins/${comment.pin_id}`, { method: 'DELETE' });
+                  if (!res.ok) return;
                   await mutate(`/pins?_path=${window.location.pathname}`);
                   if (comment.pin_id === activeId) setActiveId(comment.pin_id * -1);
                 } else {
-                  await fetcher(`/comments/${comment.id}`, { method: 'DELETE' });
+                  const res = await fetcher(`/comments/${comment.id}`, { method: 'DELETE' });
+                  if (!res.ok) return;
                   await mutate(`/pins/${comment.pin_id}/comments`);
                 }
               }}
