@@ -55,7 +55,7 @@ export default function Aloy(props: AloyProps) {
       userId = (await res.json()).user.id;
       if (!userId) return; // TODO
 
-      Cookies.set(key, userId, { expires: new Date(new Date().getTime() + 1 * 60 * 1000) /* 1 minute */ });
+      Cookies.set(key, userId, { expires: new Date(new Date().getTime() + 5 * 60 * 1000) /* 5 minutes */ });
       load({ apiUrl, appId, userId, breakpoints });
     })();
   }, []);
