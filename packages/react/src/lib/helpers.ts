@@ -1,8 +1,7 @@
-import { twMerge } from 'tailwind-merge';
 import clsx, { type ClassValue } from 'clsx';
 
 export const cn = (...inputs: ClassValue[]) => {
-  return twMerge(clsx(inputs));
+  return clsx(inputs);
 };
 
 export const isElementHidden = (el: Element) => {

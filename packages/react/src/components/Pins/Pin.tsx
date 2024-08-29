@@ -81,13 +81,13 @@ export default function Pin({ pin }: PinProps) {
 
       <div
         className={cn(
-          '__aloy-pin absolute size-fit !rounded-tl-none border border-neutral-200 bg-white',
+          '__aloy-pin absolute !rounded-tl-none border border-neutral-200 bg-white',
           isHidden && '!hidden',
           isHoverable && 'cursor-pointer',
           isExpanded
-            ? 'z-[1003] rounded-lg shadow-sm'
+            ? 'z-[1003] size-fit rounded-lg shadow-sm'
             : 'z-[1002] flex size-8 scale-90 items-center justify-center rounded-full opacity-50 shadow-md transition-transform hover:scale-100 hover:opacity-100',
-          isHoverable && isExpanded && "absolute -inset-6 block before:content-['']",
+          isHoverable && isExpanded && '-inset-6 block',
         )}
         style={{ top: position.top, left: position.left }}
         onClick={() => {

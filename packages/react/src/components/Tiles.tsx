@@ -19,7 +19,7 @@ export default function Tiles({ n }: TilesProps) {
               key={'' + i + j}
               className={cn(
                 'flex items-center justify-center',
-                (i % 2 === 0 ? j % 2 === 0 : j % 2 !== 0) ? 'bg-neutral-200' : '',
+                (i % 2 === 0 ? j % 2 === 0 : j % 2 !== 0) && 'bg-neutral-200',
               )}
             >{`${i},${j}`}</div>
           ))}

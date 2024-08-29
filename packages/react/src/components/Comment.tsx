@@ -75,9 +75,10 @@ export default function Comment({
             {isRoot && showMarkAsDone && (
               <button
                 className={cn(
-                  'flex size-6 items-center justify-center rounded-md text-neutral-400',
-                  isCompleted ? 'rounded-full bg-lime-50 text-lime-500' : 'cursor-pointer',
-                  !isCompleted && !isReadonly && 'hover:bg-lime-50 hover:text-lime-500',
+                  'flex size-6 items-center justify-center',
+                  isCompleted
+                    ? 'rounded-full bg-lime-50 text-lime-500'
+                    : 'cursor-pointer rounded-md text-neutral-400 hover:bg-lime-50 hover:text-lime-500',
                 )}
                 onClick={async (e) => {
                   e.stopPropagation();
