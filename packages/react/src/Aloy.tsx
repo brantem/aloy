@@ -7,19 +7,19 @@ import Inbox from 'components/Inbox';
 import Pill from 'components/Pill';
 import Pins from 'components/Pins';
 
-import { State } from 'types';
-import type { User } from 'types/external';
+import { State, User } from 'types';
+import type { User as ExternalUser } from 'types/external';
 import { useAppStore } from 'lib/stores';
 
 export type AloyHandle = {
-  saveUser(user: User): Promise<number>;
+  saveUser(user: ExternalUser): Promise<User | null>;
 };
 
 export type AloyProps = {
   apiUrl: string;
   appId: string;
   breakpoints: number[];
-  user: User;
+  user: ExternalUser;
 };
 
 const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
@@ -31,7 +31,7 @@ const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
   };
 };
 
-const key = '__aloy-user-id';
+const key = '__aloy-user';
 
 const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
   const { apiUrl, appId, breakpoints, user } = processProps(props);
@@ -44,18 +44,20 @@ const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
     isAddingComment: state.active === State.AddComment,
   }));
 
-  const saveUser = async (user: User) => {
+  const saveUser = async (user: ExternalUser) => {
     const res = await fetch(`${apiUrl}/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Aloy-App-ID': appId },
       body: JSON.stringify(user),
     });
     const userId = (await res.json()).user.id;
-    if (!userId) return; // TODO
+    if (!userId) return null;
 
-    Cookies.set(key, userId, { expires: new Date(new Date().getTime() + 5 * 60 * 1000) /* 5 minutes */ });
-    setUser({ id: userId, name: user.name });
-    return userId;
+    const v = { id: userId, name: user.name } satisfies User;
+    Cookies.set(key, JSON.stringify(v), { expires: 1, path: '/' });
+    setUser(v);
+
+    return v;
   };
 
   useImperativeHandle(ref, () => ({
@@ -65,9 +67,13 @@ const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
   useEffect(() => {
     if (!apiUrl || !appId || !user.id || !user.name) return;
     (async () => {
-      const userId = parseInt(Cookies.get(key) || '');
-      if (!isNaN(userId)) return load({ apiUrl, appId, user: { id: userId, name: user.name }, breakpoints });
-      load({ apiUrl, appId, user: { id: await saveUser(user), name: user.name }, breakpoints });
+      let v: User | null = JSON.parse(Cookies.get(key) || 'null');
+      if (v && v.name === user.name) return load({ apiUrl, appId, user: v, breakpoints });
+
+      v = await saveUser(user);
+      if (!v) return; // TODO
+
+      load({ apiUrl, appId, user: v, breakpoints });
     })();
   }, []);
 
