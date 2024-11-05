@@ -1,20 +1,16 @@
 meta {
-  name: /complete
+  name: /
   type: http
-  seq: 2
+  seq: 1
 }
 
-post {
-  url: {{url}}/pins/1/complete
-  body: text
+get {
+  url: {{url}}/v1/pins
+  body: none
   auth: none
 }
 
 headers {
   Aloy-App-ID: {{appId}}
   Aloy-User-ID: {{userId}}
-}
-
-body:text {
-  1
 }

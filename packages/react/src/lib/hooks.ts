@@ -63,7 +63,7 @@ export const usePinPosition = (p: PinPosition) => {
 export const usePins = () => {
   const r = useCurrentBreakpoint();
 
-  const { data, isLoading } = useSWR<{ nodes: Pin[] }>(`/pins?_path=${window.location.pathname}`);
+  const { data, isLoading } = useSWR<{ nodes: Pin[] }>(`/v1/pins?_path=${window.location.pathname}`);
   const nodes = r
     ? (data?.nodes || []).filter((pin) => {
         if (r.start === 0 && r.end === 0) return true;

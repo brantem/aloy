@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import * as v from 'valibot';
 
-import type { Env, User, Pin, Comment } from '../types';
-import * as validator from '../validator';
+import type { Env, User, Pin, Comment } from '../../types';
+import * as validator from '../../validator';
 
 const pins = new Hono<Env>();
 
@@ -75,21 +75,21 @@ pins.delete('/:id', async (c) => {
 });
 
 pins.post('/:id/complete', async (c) => {
-  let stmt;
   if ((await c.req.text()) === '1') {
-    stmt = c.env.DB.prepare(`
+    const stmt = c.env.DB.prepare(`
       UPDATE pins
       SET completed_at = CURRENT_TIMESTAMP, completed_by_id = ?2
       WHERE id = ?1 AND completed_at IS NULL
     `);
+    await stmt.bind(c.req.param('id'), c.get('userId')).run();
   } else {
-    stmt = c.env.DB.prepare(`
+    const stmt = c.env.DB.prepare(`
       UPDATE pins
       SET completed_at = NULL, completed_by_id = NULL
       WHERE id = ?1 AND completed_at IS NOT NULL
     `);
+    await stmt.bind(c.req.param('id')).run();
   }
-  await stmt.bind(c.req.param('id'), c.get('userId')).run();
   return c.json({ success: true, error: null }, 200);
 });
 

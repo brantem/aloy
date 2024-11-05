@@ -3,9 +3,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 
-import users from './handlers/users';
-import pins from './handlers/pins';
-import comments from './handlers/comments';
+import v1 from './handlers/v1';
 
 import type { Env } from './types';
 
@@ -29,18 +27,7 @@ app.use('*', async (c, next) => {
   await next();
 });
 
-app.route('/users', users);
-
-app.use('*', async (c, next) => {
-  const userId = c.req.header('Aloy-User-ID');
-  if (!userId) return c.json({ error: { code: 'MISSING_USER_ID' } }, 400);
-  c.set('userId', userId);
-
-  await next();
-});
-
-app.route('/pins', pins);
-app.route('/comments', comments);
+app.route('/v1', v1);
 
 app.onError((err, c) => {
   console.error(err);

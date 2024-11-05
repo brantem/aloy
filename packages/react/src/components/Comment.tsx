@@ -84,13 +84,13 @@ export default function Comment({
                 )}
                 onClick={async (e) => {
                   e.stopPropagation();
-                  const res = await fetcher(`/pins/${comment.pin_id}/complete`, {
+                  const res = await fetcher(`/v1/pins/${comment.pin_id}/complete`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: isCompleted ? '0' : '1',
                   });
                   if (!res.ok) return;
-                  mutate(`/pins?_path=${window.location.pathname}`);
+                  mutate(`/v1/pins?_path=${window.location.pathname}`);
                 }}
               >
                 <CheckCircleIcon className="size-5" />
@@ -101,14 +101,14 @@ export default function Comment({
               onClick={async (e) => {
                 e.stopPropagation();
                 if (isRoot) {
-                  const res = await fetcher(`/pins/${comment.pin_id}`, { method: 'DELETE' });
+                  const res = await fetcher(`/v1/pins/${comment.pin_id}`, { method: 'DELETE' });
                   if (!res.ok) return;
-                  await mutate(`/pins?_path=${window.location.pathname}`);
+                  await mutate(`/v1/pins?_path=${window.location.pathname}`);
                   if (comment.pin_id === activeId) setActiveId(comment.pin_id * -1);
                 } else {
-                  const res = await fetcher(`/comments/${comment.id}`, { method: 'DELETE' });
+                  const res = await fetcher(`/v1/comments/${comment.id}`, { method: 'DELETE' });
                   if (!res.ok) return;
-                  await mutate(`/pins/${comment.pin_id}/comments`);
+                  await mutate(`/v1/pins/${comment.pin_id}/comments`);
                 }
               }}
             >

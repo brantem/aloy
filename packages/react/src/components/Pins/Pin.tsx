@@ -16,7 +16,7 @@ type ContentProps = {
 };
 
 const Content = ({ pin, isCompact }: ContentProps) => {
-  const { data } = useSWR<{ nodes: C[] }>(`/pins/${pin.id}/comments`);
+  const { data } = useSWR<{ nodes: C[] }>(`/v1/pins/${pin.id}/comments`);
   return (
     <div className="flex flex-col [&>*~*]:border-t [&>*~*]:border-neutral-200">
       <Comment

@@ -28,24 +28,24 @@ export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFor
 
   const createPin = async (text: string) => {
     if (!text) return;
-    const res = await fetcher('/pins', {
+    const res = await fetcher('/v1/pins', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ _path: window.location.pathname, ...tempPin, text }),
     });
     if (!res.ok) return;
-    mutate(`/pins?_path=${window.location.pathname}`);
+    mutate(`/v1/pins?_path=${window.location.pathname}`);
   };
 
   const createComment = async (text: string) => {
     if (!text) return;
-    const res = await fetcher(`/pins/${pinId}/comments`, {
+    const res = await fetcher(`/v1/pins/${pinId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) return;
-    mutate(`/pins/${pinId}/comments`);
+    mutate(`/v1/pins/${pinId}/comments`);
   };
 
   return (

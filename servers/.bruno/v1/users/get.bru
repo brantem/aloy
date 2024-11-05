@@ -4,19 +4,19 @@ meta {
   seq: 1
 }
 
-patch {
-  url: {{url}}/pins/1/comments/1
+post {
+  url: {{url}}/v1/users
   body: json
   auth: none
 }
 
 headers {
   Aloy-App-ID: {{appId}}
-  Aloy-User-ID: {{userId}}
 }
 
 body:json {
   {
-    "text": "Thanks a lot!"
+    "id": "user-1",
+    "name": "User 1"
   }
 }

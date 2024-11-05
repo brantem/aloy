@@ -45,7 +45,7 @@ const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
   }));
 
   const saveUser = async (user: ExternalUser) => {
-    const res = await fetch(`${apiUrl}/users`, {
+    const res = await fetch(`${apiUrl}/v1/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Aloy-App-ID': appId },
       body: JSON.stringify(user),
