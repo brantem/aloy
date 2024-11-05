@@ -66,8 +66,8 @@ export default function AddCommentForm({ pinId }: AddCommentFormProps) {
           onChange={(v) => setText(v)}
           onKeyDown={(e) => {
             if (!isHotkey('enter', e)) return;
-            if (isHotkey('shift+enter', e)) return e.preventDefault();
-            formRef.current?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            if (isHotkey('shift+enter', e)) return e.preventDefault(); // shift+enter for new lines in the editor
+            formRef.current?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); // enter to submit the form
           }}
         />
       </div>

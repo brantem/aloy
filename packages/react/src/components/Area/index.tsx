@@ -31,7 +31,14 @@ export default function Area() {
       const path = finder(e.target as Element, { seedMinLength: 4 });
       if (path.includes('__aloy')) return;
 
-      const pin = { path, w: size.w, _x: e.pageX / size.w, x: 0, _y: e.pageY / size.h, y: 0 };
+      const pin = {
+        path, // CSS selector for the pin's parent
+        w: size.w, // Current window width
+        _x: e.pageX / size.w, // Normalized horizontal click position
+        x: 0, // Horizontal position relative to the parent
+        _y: e.pageY / size.h, // Normalized vertical click position
+        y: 0, // Vertical position relative to the parent
+      };
       if (path) {
         const el = document.querySelector(path);
         if (el) {

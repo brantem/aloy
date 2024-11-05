@@ -45,16 +45,18 @@ export default function Pin({ pin }: PinProps) {
 
   const isInboxOpen = active === State.ShowInbox;
 
-  // The pin will only be visible when:
-  // 1. it is not complete
-  // 2. the inbox is open, regardless of the completion status
+  // The pin will be visible when:
+  // 1. It is incomplete
+  // 2. The inbox is open, regardless of completion status
   const isHidden = !isInboxOpen && pin.completed_at !== null;
 
-  // The pin will be hoverable (root visible) when:
-  // 1. it is not hidden
+  // The pin will be hoverable (root visible) when it is visible
   const isHoverable = !isHidden;
 
+  // The pin will be expanded when hovered or active
   const isExpanded = isHovered || isActive;
+
+  // Replies will be visible when the pin is active and locked (clicked)
   const isRepliesVisible = isActive && isActiveIdLocked;
 
   return createPortal(
@@ -85,7 +87,7 @@ export default function Pin({ pin }: PinProps) {
         style={{ top: position.top, left: position.left }}
         onClick={() => {
           if (isHidden) return;
-          setActiveId(pin.id, true);
+          setActiveId(pin.id, true); // Expand & show replies
           const el = document.getElementById(`__aloy-pin-${pin.id}`)!;
           el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
           clearTimeout(enterTimeoutRef.current);

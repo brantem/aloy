@@ -31,7 +31,7 @@ const AddCommentButton = () => {
         'flex size-9 items-center justify-center rounded-full text-neutral-900',
         isActive ? 'bg-neutral-200' : 'hover:bg-neutral-100',
       )}
-      onClick={() => toggle(() => setActiveId(0))}
+      onClick={() => toggle(() => setActiveId(0) /* Close all pins */)}
     >
       <ChatBubbleOvalLeftIcon className="size-5" />
     </button>
@@ -50,7 +50,7 @@ const ShowInboxButton = () => {
       onClick={() => {
         toggle((isActive) => {
           if (!isActive) return;
-          setActiveId(activeId || 'first');
+          setActiveId(activeId || 'first'); // Open the currently active pin or the first pin
         });
       }}
     >

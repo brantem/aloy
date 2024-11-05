@@ -70,7 +70,7 @@ export const usePins = () => {
         if (r.start === 0 && r.end !== 0) return pin.w <= r.end;
         if (r.start !== 0 && r.end === 0) return pin.w >= r.start;
         return pin.w >= r.start && pin.w <= r.end;
-      })
+      }) // Filter out pins that shouldn't be visible at the current breakpoints
     : [];
 
   const { activeId, setActiveId } = usePinStore((state) => ({
