@@ -63,7 +63,7 @@ export default function Comment({
   const ref = useRef<HTMLDivElement>(null);
 
   const { user, fetcher } = useAppStore((state) => ({ user: state.user, fetcher: state.fetcher }));
-  const { activeId, setActiveId } = usePins();
+  const { setActiveId } = usePins();
 
   return (
     <div ref={ref} className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
@@ -104,7 +104,7 @@ export default function Comment({
                   const res = await fetcher(`/v1/pins/${comment.pin_id}`, { method: 'DELETE' });
                   if (!res.ok) return;
                   await mutate(`/v1/pins?_path=${window.location.pathname}`);
-                  if (comment.pin_id === activeId) setActiveId(comment.pin_id * -1);
+                  setActiveId(0);
                 } else {
                   const res = await fetcher(`/v1/comments/${comment.id}`, { method: 'DELETE' });
                   if (!res.ok) return;
