@@ -10,35 +10,6 @@ import { usePinPosition } from 'lib/hooks';
 import { useAppStore, usePinStore } from 'lib/stores';
 import { cn } from 'lib/helpers';
 
-type ContentProps = {
-  pin: Pin;
-  isCompact: boolean;
-};
-
-const Content = ({ pin, isCompact }: ContentProps) => {
-  const { data } = useSWR<{ nodes: C[] }>(`/v1/pins/${pin.id}/comments`);
-  return (
-    <div className="flex flex-col [&>*~*]:border-t [&>*~*]:border-neutral-200">
-      <Comment
-        isRoot
-        comment={{ pin_id: pin.id, ...pin.comment, user: pin.user }}
-        showMarkAsDone
-        isCompleted={!!pin.completed_at}
-        totalReplies={pin.total_replies}
-        showTotalReplies={isCompact}
-      />
-      {!isCompact && (
-        <>
-          {(data?.nodes || []).map((comment) => (
-            <Comment key={comment.id} comment={{ pin_id: pin.id, ...comment }} />
-          ))}
-          <AddCommentForm pinId={pin.id} />
-        </>
-      )}
-    </div>
-  );
-};
-
 type PinProps = {
   pin: Pin;
 };
@@ -53,12 +24,11 @@ export default function Pin({ pin }: PinProps) {
     setActive: state.setActive,
   }));
   const { isHovered, setHoveredId, isActive, isActiveIdLocked, setActiveId } = usePinStore((state) => {
-    const isActive = pin.id === state.activeId;
     return {
-      isHovered: isActive ? false : pin.id === state.hoveredId, // why
+      isHovered: pin.id === state.hoveredId,
       setHoveredId: state.setHoveredId,
-      isActive,
-      isActiveIdLocked: isActive && state.isActiveIdLocked,
+      isActive: pin.id === state.activeId,
+      isActiveIdLocked: state.isActiveIdLocked,
       setActiveId(v: number, isLocked = false) {
         state.setActiveId(v, isLocked);
         if (active !== State.AddComment) return;
@@ -74,20 +44,18 @@ export default function Pin({ pin }: PinProps) {
   if (!position) return null;
 
   const isInboxOpen = active === State.ShowInbox;
-  // the pin will only be expanded when:
-  // 1. hovered (root)
-  // 2. clicked (root + comments)
-  // 3. the inbox is open, and the pin is active (root)
-  // 4. the inbox is open, and the pin is active and locked (root + comments)
-  const isExpanded = isHovered ? true : isInboxOpen ? isActive : isActive && isActiveIdLocked;
+
   // The pin will only be visible when:
   // 1. it is not complete
   // 2. the inbox is open, regardless of the completion status
   const isHidden = !isInboxOpen && pin.completed_at !== null;
+
   // The pin will be hoverable (root visible) when:
   // 1. it is not hidden
-  // 2. it is locked (comments are visible)
-  const isHoverable = !isHidden && (isActive ? !isActiveIdLocked : true);
+  const isHoverable = !isHidden;
+
+  const isExpanded = isHovered || isActive;
+  const isRepliesVisible = isActive && isActiveIdLocked;
 
   return createPortal(
     <>
@@ -117,7 +85,7 @@ export default function Pin({ pin }: PinProps) {
         style={{ top: position.top, left: position.left }}
         onClick={() => {
           if (isHidden) return;
-          setActiveId(pin.id, isActive);
+          setActiveId(pin.id, true);
           const el = document.getElementById(`__aloy-pin-${pin.id}`)!;
           el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
           clearTimeout(enterTimeoutRef.current);
@@ -138,7 +106,17 @@ export default function Pin({ pin }: PinProps) {
 
         {!isHidden &&
           (isExpanded ? (
-            <Content pin={pin} isCompact={isInboxOpen ? !isActiveIdLocked : isHoverable} />
+            <div className="flex flex-col [&>*~*]:border-t [&>*~*]:border-neutral-200">
+              <Comment
+                isRoot
+                comment={{ pin_id: pin.id, ...pin.comment, user: pin.user }}
+                showMarkAsDone
+                isCompleted={!!pin.completed_at}
+                totalReplies={pin.total_replies}
+                showTotalReplies={!isRepliesVisible}
+              />
+              {isRepliesVisible && <Replies pinId={pin.id} />}
+            </div>
           ) : (
             <span className="text-lg font-bold">{pin.user.name[0]!.toUpperCase()}</span>
           ))}
@@ -147,3 +125,15 @@ export default function Pin({ pin }: PinProps) {
     document.body,
   );
 }
+
+const Replies = ({ pinId }: { pinId: Pin['id'] }) => {
+  const { data } = useSWR<{ nodes: C[] }>(`/v1/pins/${pinId}/comments`);
+  return (
+    <>
+      {(data?.nodes || []).map((comment) => (
+        <Comment key={comment.id} comment={{ pin_id: pinId, ...comment }} />
+      ))}
+      <AddCommentForm pinId={pinId} />
+    </>
+  );
+};
