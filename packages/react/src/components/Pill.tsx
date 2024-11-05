@@ -24,13 +24,14 @@ const useToggle = (v: State) => {
 
 const AddCommentButton = () => {
   const { isActive, toggle } = useToggle(State.AddComment);
+  const setActiveId = usePinStore((state) => state.setActiveId);
   return (
     <button
       className={cn(
         'flex size-9 items-center justify-center rounded-full text-neutral-900',
         isActive ? 'bg-neutral-200' : 'hover:bg-neutral-100',
       )}
-      onClick={() => toggle()}
+      onClick={() => toggle(() => setActiveId(0))}
     >
       <ChatBubbleOvalLeftIcon className="size-5" />
     </button>
