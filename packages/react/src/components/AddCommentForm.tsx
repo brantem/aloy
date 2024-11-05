@@ -9,7 +9,6 @@ import { useAppStore, usePinStore } from 'lib/stores';
 
 type AddCommentFormProps = {
   pinId: number | null;
-  shouldAutoFocus?: boolean;
 };
 
 export default function AddCommentForm({ pinId }: AddCommentFormProps) {

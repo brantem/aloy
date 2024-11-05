@@ -23,7 +23,7 @@ export default function AddCommentCard({ p }: AddCommentCardProps) {
         left: position.left,
       }}
     >
-      <AddCommentForm pinId={null} shouldAutoFocus />
+      <AddCommentForm pinId={null} />
     </div>,
     document.body,
   );
