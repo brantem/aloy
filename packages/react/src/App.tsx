@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 
-import Tiles from 'components/Tiles.tsx';
-import User from 'components/User.tsx';
-import Aloy, { type AloyHandle } from './Aloy.tsx';
+import Tiles from 'components/Tiles';
+import User from 'components/User';
+import Aloy, { type AloyHandle } from './Aloy';
 
 import { useUserStore } from 'lib/stores/user';
 
