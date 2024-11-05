@@ -1,7 +1,6 @@
 {
   "name": "@aloy/cloudflare-workers",
   "scripts": {
-    "prepare": "wrangler d1 migrations apply aloy",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface Bindings"
