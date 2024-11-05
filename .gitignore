@@ -1,8 +1,9 @@
 .DS_Store
 .vscode
 node_modules
-dist
 
-# Logs
+.env
+.env.*
+.env.example
 
-pnpm-debug.log*
+*.log
