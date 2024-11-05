@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Any = any;
+
 export enum State {
   Nothing = 0,
   AddComment,

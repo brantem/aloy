@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import Textarea from 'react-textarea-autosize';
+import { useRef, useState } from 'react';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { useSWRConfig } from 'swr';
+import isHotkey from 'is-hotkey';
+
+import TextEditor from 'components/TextEditor';
 
 import { useAppStore, usePinStore } from 'lib/stores';
 
@@ -10,9 +12,7 @@ type AddCommentFormProps = {
   shouldAutoFocus?: boolean;
 };
 
-// TODO: not autofocus
-
-export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFormProps) {
+export default function AddCommentForm({ pinId }: AddCommentFormProps) {
   const { mutate } = useSWRConfig();
 
   const fetcher = useAppStore((state) => state.fetcher);
@@ -23,6 +23,8 @@ export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFor
       state.setTempPin(null);
     },
   }));
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [text, setText] = useState('');
 
@@ -50,6 +52,7 @@ export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFor
 
   return (
     <form
+      ref={formRef}
       id="__aloy-add-form"
       className="relative w-full"
       onSubmit={async (e) => {
@@ -58,13 +61,17 @@ export default function AddCommentForm({ pinId, shouldAutoFocus }: AddCommentFor
         reset();
       }}
     >
-      <Textarea
-        className="w-full resize-none p-2.5 text-sm outline-none"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        autoFocus={shouldAutoFocus}
-        minRows={3}
-      />
+      <div className="prose-sm min-h-16 w-full p-2.5">
+        <TextEditor
+          initialValue=""
+          onChange={(v) => setText(v)}
+          onKeyDown={(e) => {
+            if (!isHotkey('enter', e)) return;
+            if (isHotkey('shift+enter', e)) return e.preventDefault();
+            formRef.current?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }}
+        />
+      </div>
 
       <div className="flex items-center justify-end p-1.5">
         <button

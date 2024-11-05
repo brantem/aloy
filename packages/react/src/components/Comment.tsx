@@ -120,17 +120,51 @@ export default function Comment({
 
       <CreatedAt>{comment.created_at}</CreatedAt>
 
-      <div className={cn('mt-2 gap-5 text-neutral-500 [&_p]:m-0 [&_p]:leading-5', isFixed && 'line-clamp-3')}>
-        {comment.text.split(/\n+/).map((s, i) => (
-          <p key={i}>{s}</p>
-        ))}
-      </div>
+      <Text data={JSON.parse(comment.text)} isFixed={isFixed} />
 
       {showTotalReplies && totalReplies > 0 && (
         <span className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 rounded-full bg-black px-2 py-1 text-xs text-white">
           {totalReplies} {totalReplies > 1 ? 'Replies' : 'Reply'}
         </span>
       )}
+    </div>
+  );
+}
+
+type Child = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+};
+
+type Item = {
+  children: Child[];
+};
+
+function Text({ data, isFixed }: { data: Item[]; isFixed: boolean }) {
+  return (
+    <div className={cn('prose-sm mt-2', isFixed && 'line-clamp-3')}>
+      {data.map((item, i) => {
+        if (!item.children.some((child) => child.text.trim())) {
+          return (
+            <div key={i}>
+              <span>&nbsp;</span>
+            </div>
+          );
+        }
+        return (
+          <div key={i}>
+            {item.children.map((child, i) => {
+              let text = <>{child.text}</>;
+              if ('bold' in child) text = <strong>{text}</strong>;
+              if ('italic' in child) text = <em>{text}</em>;
+              if ('underline' in child) text = <u>{text}</u>;
+              return <span key={i}>{text}</span>;
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }
