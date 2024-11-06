@@ -21,10 +21,16 @@ export type PinPosition = {
   y: number;
 };
 
+export type Attachment = {
+  hash?: string | null; // TODO
+  url: string;
+};
+
 export type Comment = {
   id: number;
   user: User;
   text: string;
+  attachments: Attachment[];
   created_at: number;
   updated_at: number;
 };

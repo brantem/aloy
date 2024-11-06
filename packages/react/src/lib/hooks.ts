@@ -109,16 +109,18 @@ export const usePins = () => {
   } as const;
 };
 
-export const useEscape = (cb: () => void) => {
+export const useKeyDown = (cb: (e: KeyboardEvent) => void) => {
   useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      cb();
-    };
+    document.addEventListener('keydown', cb);
+    return () => document.removeEventListener('keydown', cb);
+  }, [cb]);
+};
 
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, []);
+export const useEscape = (cb: () => void) => {
+  useKeyDown((e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    cb();
+  });
 };
 
 export const useActions = () => {

@@ -5,6 +5,7 @@ import Area from 'components/Area';
 import Inbox from 'components/Inbox';
 import Pill from 'components/Pill';
 import Pins from 'components/Pins';
+import Lightbox from 'components/Lightbox';
 
 import { State, User } from 'types';
 import type { User as ExternalUser } from 'types/external';
@@ -65,6 +66,7 @@ const Aloy = forwardRef<AloyHandle, Pick<AloyProps, 'user'>>(function Aloy(props
       <Inbox />
       <Pill />
       <Pins />
+      <Lightbox />
     </SWRConfig>
   );
 });

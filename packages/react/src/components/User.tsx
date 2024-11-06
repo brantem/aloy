@@ -22,7 +22,7 @@ export default function User({ onChange }: UserProps) {
   return (
     <>
       {user && (
-        <div className="fixed right-4 top-4 z-[3002]">
+        <div className="fixed right-4 top-4 z-20">
           <button
             className={cn(
               'group relative flex size-7 items-center justify-center rounded-full bg-black px-2.5 text-white shadow-xl dark:bg-white dark:text-black',
@@ -38,7 +38,7 @@ export default function User({ onChange }: UserProps) {
 
       <Dialog
         open={isOpen}
-        className="relative z-[3002] focus:outline-none lg:z-[3001]"
+        className="relative z-20 focus:outline-none lg:z-10"
         onClose={() => {
           if (!user) return;
           setIsOpen(false);
@@ -49,7 +49,7 @@ export default function User({ onChange }: UserProps) {
           className="fixed inset-0 bg-black/50 backdrop-blur-sm duration-300 ease-out data-[closed]:opacity-0 lg:backdrop-blur-md"
         />
 
-        <div className="fixed inset-0 z-[3001] w-screen overflow-y-auto">
+        <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
           <div className="flex min-h-full items-end justify-center lg:items-center lg:p-6">
             <DialogPanel
               transition
