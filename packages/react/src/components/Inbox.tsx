@@ -45,7 +45,7 @@ export default function Inbox() {
             isReadonly={isReadonly}
             showMarkAsDone
             isCompleted={!!pin.completed_at}
-            onClick={() => setActiveId(pin.id)}
+            onClick={() => setActiveId(pin.id, false)}
             isFixed
           />
         );

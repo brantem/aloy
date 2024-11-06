@@ -73,9 +73,10 @@ export const usePins = () => {
       }) // Filter out pins that shouldn't be visible at the current breakpoints
     : [];
 
-  const { activeId, setActiveId } = usePinStore((state) => ({
+  const { activeId, setActiveId, isActiveIdLocked } = usePinStore((state) => ({
     activeId: state.activeId,
     setActiveId: state.setActiveId,
+    isActiveIdLocked: state.isActiveIdLocked,
   }));
 
   return {
@@ -83,7 +84,7 @@ export const usePins = () => {
     isLoading,
 
     activeId,
-    setActiveId(v: 'first' | number, isLocked = false) {
+    setActiveId(v: 'first' | number, isLocked = isActiveIdLocked) {
       if (v === 'first') v = nodes[0].id;
       // if v is a negative number, find other id than v * -1 else 0
       if (v < 0) v = nodes.find((node) => node.id !== (v as number) * -1)?.id || 0;
