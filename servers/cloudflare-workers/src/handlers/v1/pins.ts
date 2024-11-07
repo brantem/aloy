@@ -68,12 +68,6 @@ pins.post('/', validator.json(createPinSchema), async (c) => {
   return c.json({ pin: { id: pin.id }, error: null }, 200);
 });
 
-pins.delete('/:id', async (c) => {
-  const stmt = c.env.DB.prepare('DELETE FROM pins WHERE id = ? AND user_id = ?');
-  await stmt.bind(c.req.param('id'), c.get('userId')).run();
-  return c.json({ success: true, error: null }, 200);
-});
-
 pins.post('/:id/complete', async (c) => {
   if ((await c.req.text()) === '1') {
     const stmt = c.env.DB.prepare(`
@@ -90,6 +84,12 @@ pins.post('/:id/complete', async (c) => {
     `);
     await stmt.bind(c.req.param('id')).run();
   }
+  return c.json({ success: true, error: null }, 200);
+});
+
+pins.delete('/:id', async (c) => {
+  const stmt = c.env.DB.prepare('DELETE FROM pins WHERE id = ? AND user_id = ?');
+  await stmt.bind(c.req.param('id'), c.get('userId')).run();
   return c.json({ success: true, error: null }, 200);
 });
 
