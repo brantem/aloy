@@ -12,6 +12,11 @@ class Database:
         try:
             conn = sqlite3.connect(self.path)
             conn.row_factory = sqlite3.Row
+            conn.isolation_level = None
+            conn.autocommit = sqlite3.LEGACY_TRANSACTION_CONTROL
+
+            conn.execute("PRAGMA foreign_keys = ON")
+
             yield conn
         finally:
             if conn:

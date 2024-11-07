@@ -11,16 +11,13 @@ from handlers import v1
 load_dotenv()
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 CORS(
     app,
-    resources={
-        r"/*": {
-            "origins": os.getenv("ALLOW_ORIGINS", "*").split(","),
-            "allow_headers": ["Content-Type", "Aloy-App-ID", "Aloy-User-ID"],
-            "expose_headers": ["X-Total-Count"],
-        }
-    },
+    origins=os.getenv("ALLOW_ORIGINS", "*").split(","),
+    allow_headers=["Content-Type", "Aloy-App-ID", "Aloy-User-ID"],
+    expose_headers=["X-Total-Count"],
 )
 Compress(app)
 

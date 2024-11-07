@@ -2,6 +2,9 @@ from flask import g, jsonify, request
 
 
 def check_user_id():
+    if request.method == "OPTIONS":
+        return None
+
     user_id = request.headers.get("Aloy-User-ID")
     if not user_id:
         return jsonify({"error": {"code": "MISSING_USER_ID"}}), 400

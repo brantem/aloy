@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, g, jsonify
+from flask import Blueprint, current_app, g, jsonify, request
 
 import middlewares
 
@@ -6,12 +6,31 @@ comments = Blueprint("comments", __name__)
 comments.before_request(middlewares.check_user_id)
 
 
-@comments.get("/")
-def get_comments():
+@comments.patch("/<comment_id>")
+def update_comment(comment_id):
+    body = request.get_json()
+
     try:
         with g.db.get() as conn:
-            comments = conn.execute("SELECT * FROM comments").fetchall()
-            return jsonify([dict(comment) for comment in comments])
+            conn.execute(
+                "UPDATE comments SET text = ? WHERE id = ? AND user_id = ?",
+                (comment_id, g.user_id, body.get("text")),
+            )
+            return jsonify({"success": True, "error": None})
     except Exception as e:
         current_app.logger.error(e)
-        return jsonify({"error": {"code": "INTERNAL_SERVER_ERROR"}}), 500
+        return jsonify({"success": False, "error": {"code": "INTERNAL_SERVER_ERROR"}}), 500
+
+
+@comments.delete("/<comment_id>")
+def delete_comment(comment_id):
+    try:
+        with g.db.get() as conn:
+            conn.execute(
+                "DELETE FROM comments WHERE id = ? AND user_id = ?",
+                (comment_id, g.user_id),
+            )
+            return jsonify({"success": True, "error": None})
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify({"success": False, "error": {"code": "INTERNAL_SERVER_ERROR"}}), 500
