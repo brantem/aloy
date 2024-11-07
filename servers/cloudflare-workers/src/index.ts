@@ -5,8 +5,6 @@ import { cors } from 'hono/cors';
 
 import v1 from './handlers/v1';
 
-import type { Env } from './types';
-
 const app = new Hono<Env>();
 app.get('*', secureHeaders());
 app.use('*', logger());

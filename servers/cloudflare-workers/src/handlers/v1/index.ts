@@ -4,8 +4,6 @@ import users from './users';
 import pins from './pins';
 import comments from './comments';
 
-import type { Env } from '../../types';
-
 const v1 = new Hono<Env>();
 
 v1.route('/users', users);

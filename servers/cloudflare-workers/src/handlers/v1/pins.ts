@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import * as v from 'valibot';
 
-import type { Env, User, Pin, Comment } from '../../types';
+import type { User, Pin, Comment } from '../../types';
 import * as validator from '../../validator';
 
 const pins = new Hono<Env>();

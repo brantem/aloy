@@ -1,13 +1,3 @@
-export interface Env {
-  Bindings: Bindings & {
-    ALLOW_ORIGINS: string;
-  };
-  Variables: {
-    appId: string;
-    userId: string;
-  };
-}
-
 export type User = {
   _id: string;
   id: number;
