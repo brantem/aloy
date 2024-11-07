@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react';
 import { Editor, createEditor } from 'slate';
 import { Slate, Editable, withReact, type RenderLeafProps } from 'slate-react';
 import { withHistory } from 'slate-history';
@@ -13,29 +13,31 @@ const HOTKEYS: Record<string, string> = {
   'mod+u': 'underline',
 };
 
+export type TextEditorHandle = {
+  reset(): void;
+};
+
 type TextEditorProps = {
-  initialValue: string;
+  initialValue?: string;
   onChange(value: string): void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void;
   className?: string;
 };
 
-export default function TextEditor({ className, initialValue: _initialValue, onChange, onKeyDown }: TextEditorProps) {
-  const [initialValue] = useState(() => {
-    try {
-      return JSON.parse(_initialValue);
-    } catch {
-      return [
-        {
-          type: 'paragraph',
-          children: [{ text: _initialValue.trim() }],
-        },
-      ];
-    }
-  });
+export default forwardRef<TextEditorHandle, TextEditorProps>(function TextEditor(
+  { className, initialValue: _initialValue = '', onChange, onKeyDown },
+  ref,
+) {
+  const [initialValue] = useState(() => generateInitialValueFromString(_initialValue));
 
   const editor = useMemo(() => withHistory(withReact(createEditor())), []);
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
+
+  useImperativeHandle(ref, () => ({
+    reset() {
+      editor.children = generateInitialValueFromString(_initialValue);
+    },
+  }));
 
   return (
     <Slate editor={editor} initialValue={initialValue} onChange={(v) => onChange(JSON.stringify(v))}>
@@ -44,6 +46,7 @@ export default function TextEditor({ className, initialValue: _initialValue, onC
         renderLeaf={renderLeaf}
         spellCheck
         autoFocus
+        onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           for (const hotkey in HOTKEYS) {
             if (isHotkey(hotkey, e)) {
@@ -67,6 +70,19 @@ export default function TextEditor({ className, initialValue: _initialValue, onC
       />
     </Slate>
   );
+});
+
+function generateInitialValueFromString(s: string) {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return [
+      {
+        type: 'paragraph',
+        children: [{ text: s.trim() }],
+      },
+    ];
+  }
 }
 
 function Leaf({ attributes, children, leaf }: RenderLeafProps) {

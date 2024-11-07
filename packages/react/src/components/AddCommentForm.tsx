@@ -3,7 +3,7 @@ import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { useSWRConfig } from 'swr';
 import isHotkey from 'is-hotkey';
 
-import TextEditor from 'components/TextEditor';
+import TextEditor, { type TextEditorHandle } from 'components/TextEditor';
 
 import { useAppStore, usePinStore } from 'lib/stores';
 
@@ -14,11 +14,14 @@ type AddCommentFormProps = {
 export default function AddCommentForm({ pinId }: AddCommentFormProps) {
   const { mutate } = useSWRConfig();
 
+  const textEditorRef = useRef<TextEditorHandle>(null);
+
   const fetcher = useAppStore((state) => state.fetcher);
   const { tempPin, reset } = usePinStore((state) => ({
     tempPin: state.tempPin,
     reset() {
       setText('');
+      textEditorRef.current?.reset();
       state.setTempPin(null);
     },
   }));
@@ -60,17 +63,16 @@ export default function AddCommentForm({ pinId }: AddCommentFormProps) {
         reset();
       }}
     >
-      <div className="prose-sm min-h-16 w-full p-2.5">
-        <TextEditor
-          initialValue=""
-          onChange={(v) => setText(v)}
-          onKeyDown={(e) => {
-            if (!isHotkey('enter', e)) return;
-            if (isHotkey('shift+enter', e)) return e.preventDefault(); // shift+enter for new lines in the editor
-            formRef.current?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); // enter to submit the form
-          }}
-        />
-      </div>
+      <TextEditor
+        className="prose-sm min-h-16 w-full p-2.5"
+        ref={textEditorRef}
+        onChange={(v) => setText(v)}
+        onKeyDown={(e) => {
+          if (!isHotkey('enter', e)) return;
+          if (isHotkey('shift+enter', e)) return e.preventDefault(); // shift+enter for new lines in the editor
+          formRef.current?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); // enter to submit the form
+        }}
+      />
 
       <div className="flex items-center justify-end p-1.5">
         <button
