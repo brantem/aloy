@@ -11,3 +11,9 @@ declare global {
     };
   }
 }
+
+declare module 'cloudflare:test' {
+  interface ProvidedEnv extends Bindings {
+    MIGRATIONS: D1Migration[];
+  }
+}

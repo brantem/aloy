@@ -20,7 +20,7 @@ pins.get('/', async (c) => {
   const { results } = await stmt
     .bind(c.get('appId'), c.req.query('me') === '1' ? c.get('userId') : '', c.req.query('_path') || '')
     .all<Omit<Pin, 'app_id' | '_path' | 'completed_by_id'> & { text: string }>();
-  if (!results.length) return c.json({ nodes: [], error: null }, 200);
+  if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
   const pinIds = [];
   const userIds = [];
@@ -31,8 +31,7 @@ pins.get('/', async (c) => {
   const [users, comments] = await Promise.all([getUsers(c.env.DB, userIds), getRootComments(c.env.DB, pinIds)]);
 
   const nodes = results.map(({ user_id, ...pin }) => ({ ...pin, user: users[user_id], comment: comments[pin.id] }));
-  c.header('X-Total-Count', nodes.length.toString());
-  return c.json({ nodes, error: null }, 200);
+  return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
 const createPinSchema = v.object({
@@ -102,14 +101,13 @@ pins.get('/:id/comments', async (c) => {
     LIMIT -1 OFFSET 1
   `);
   const { results } = await stmt.bind(c.req.param('id')).all<Omit<Comment, 'pin_id'>>();
-  if (!results.length) return c.json({ nodes: [], error: null }, 200);
+  if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
   const userIds = [...new Set(results.map((comment) => comment.user_id))];
   const users = await getUsers(c.env.DB, userIds);
 
   const nodes = results.map(({ user_id, ...comment }) => ({ ...comment, user: users[user_id] }));
-  c.header('X-Total-Count', nodes.length.toString());
-  return c.json({ nodes, error: null }, 200);
+  return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
 const createCommentSchema = v.object({
