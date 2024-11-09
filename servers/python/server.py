@@ -1,37 +1,44 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, g
-from flask_compress import Compress
-from flask_cors import CORS
+from fastapi import FastAPI, status
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 
-from db import Database
-from handlers import v1
+from routes import v1
 
 load_dotenv()
 
-app = Flask(__name__)
-app.url_map.strict_slashes = False
 
-CORS(
-    app,
-    origins=os.getenv("ALLOW_ORIGINS", "*").split(","),
+app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    for error in exc.errors():
+        if error["type"] == "missing" and "aloy-app-id" in error["loc"]:
+            return JSONResponse(content={"error": {"code": "MISSING_APP_ID"}}, status_code=status.HTTP_400_BAD_REQUEST)
+        elif error["type"] == "missing" and "aloy-user-id" in error["loc"]:
+            return JSONResponse(content={"error": {"code": "MISSING_USER_ID"}}, status_code=status.HTTP_400_BAD_REQUEST)
+    return await request_validation_exception_handler(request, exc)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.getenv("ALLOW_ORIGINS", "*").split(","),
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Aloy-App-ID", "Aloy-User-ID"],
     expose_headers=["X-Total-Count"],
 )
-Compress(app)
-
-db = Database(os.getenv("DB_DSN", "data.db"))
+app.add_middleware(GZipMiddleware)
 
 
-@app.before_request
-def before_request():
-    g.db = db
+app.include_router(v1.router)
 
 
 @app.get("/health")
-def health():
-    return "ok", 200
-
-
-app.register_blueprint(v1)
+async def health():
+    return "ok"
