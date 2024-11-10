@@ -1,2 +1,4 @@
 prepare:
-	sqlite3 data.db < migrations/0000_init.sql
+	@for file in $(shell ls migrations/*.sql | sort); do \
+		sqlite3 data.db < $$file; \
+	done

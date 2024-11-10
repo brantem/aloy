@@ -17,7 +17,7 @@ func New() *sqlx.DB {
 		logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
-	path := fmt.Sprintf("%s?_foreign_keys=on", os.Getenv("DB_DSN"))
+	path := fmt.Sprintf("%s?_foreign_keys=on", os.Getenv("DB_PATH"))
 	opts := []sqldblogger.Option{
 		sqldblogger.WithPreparerLevel(sqldblogger.LevelDebug),
 		sqldblogger.WithQueryerLevel(sqldblogger.LevelDebug),

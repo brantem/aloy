@@ -8,7 +8,7 @@ import db
 
 # I have no idea how to put this in its own package
 def get_db():
-    conn = db.connect(os.getenv("DB_DSN", "data.db"))
+    conn = db.connect(os.getenv("DB_PATH", "data.db"))
 
     try:
         yield conn
