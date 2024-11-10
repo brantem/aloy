@@ -1,0 +1,695 @@
+openapi: 3.1.0
+info:
+  title: aloy
+  version: 0.0.0
+paths:
+  /v1/users/:
+    post:
+      tags:
+        - Users
+      summary: Create User
+      operationId: create_user
+      parameters:
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUserResponse'
+        '400':
+          content:
+            application/json:
+              example:
+                error:
+                  code: MISSING_APP_ID
+          description: Bad Request
+
+  /v1/pins/:
+    get:
+      tags:
+        - Pins
+      summary: Get Pins
+      operationId: pins
+      parameters:
+        - name: me
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: integer
+              - type: 'null'
+            title: Me
+        - name: _path
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            title: ' Path'
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      responses:
+        '200':
+          description: Successful Response
+          headers:
+            X-Total-Count:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinsResponse'
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+    post:
+      tags:
+        - Pins
+      summary: Create Pin
+      operationId: create_pin
+      parameters:
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePinBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePinResponse'
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+  /v1/pins/{pinId}:
+    delete:
+      tags:
+        - Pins
+      summary: Delete Pin
+      operationId: delete_pin
+      parameters:
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Pin Id
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+  /v1/pins/{pinId}/complete:
+    post:
+      tags:
+        - Pins
+      summary: Complete Pin
+      operationId: complete_pin
+      parameters:
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Pin Id
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+              default: "1"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletePinResponse'
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+  /v1/pins/{pinId}/comments:
+    get:
+      tags:
+        - Pins
+      summary: Get Pin Comments
+      operationId: pin_comments
+      parameters:
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Pin Id
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      responses:
+        '200':
+          description: Successful Response
+          headers:
+            X-Total-Count:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinCommentsResponse'
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+    post:
+      tags:
+        - Pins
+      summary: Create Comment
+      operationId: create_comment
+      parameters:
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Pin Id
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCommentResponse'
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+
+  /v1/comments/{commentId}:
+    patch:
+      tags:
+        - Comments
+      summary: Update Comment
+      operationId: update_comment
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Comment Id
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCommentResponse'
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+    delete:
+      tags:
+        - Comments
+      summary: Delete Comment
+      operationId: delete_comment
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Comment Id
+        - name: Aloy-App-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-App-ID
+        - name: Aloy-User-ID
+          in: header
+          required: true
+          schema:
+            type: string
+            title: Aloy-User-ID
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteCommentResponse'
+        '400':
+          content:
+            application/json:
+              examples:
+                Missing Aloy-App-ID:
+                  value:
+                    error:
+                      code: MISSING_APP_ID
+                Missing Aloy-User-ID:
+                  value:
+                    error:
+                      code: MISSING_USER_ID
+          description: Bad Request
+
+components:
+  schemas:
+    User:
+      properties:
+        id:
+          type: string
+          default: "user-1"
+        name:
+          type: string
+          default: "User 1"
+      type: object
+      required:
+        - id
+        - name
+    Pin:
+      properties:
+        id:
+          type: integer
+          default: 1
+        user:
+          $ref: '#/components/schemas/User'
+        comment:
+          type: object
+          properties:
+            id:
+              type: integer
+              default: 1
+            text:
+              type: string
+              default: "This is amazing!"
+            created_at:
+              type: string
+              default: "2024-01-01T10:00:00Z"
+            updated_at:
+              type: string
+              default: "2024-01-01T10:00:00Z"
+        path:
+          type: string
+          default: "body"
+        w:
+          type: number
+          default: 1080
+        _x:
+          type: number
+          default: 0
+        x:
+          type: number
+          default: 0
+        _y:
+          type: number
+          default: 0
+        y:
+          type: number
+          default: 0
+        completed_at:
+            type:
+            - 'null'
+            - string
+        total_replies:
+          type: integer
+      type: object
+      required:
+        - id
+        - user
+        - comment
+        - path
+        - w
+        - _x
+        - x
+        - _y
+        - y
+        - created_at
+        - updated_at
+    Comment:
+      properties:
+        id:
+          type: integer
+          default: 1
+        user:
+          $ref: '#/components/schemas/User'
+        text:
+          type: string
+          default: "This is amazing!"
+        created_at:
+          type: string
+          default: "2024-01-01T10:00:00Z"
+        updated_at:
+          type: string
+          default: "2024-01-01T10:00:00Z"
+      type: object
+      required:
+        - id
+        - user
+        - text
+        - created_at
+        - updated_at
+
+    CreateUserBody:
+      properties:
+        id:
+          type: string
+          default: "user-1"
+        name:
+          type: string
+          default: "User 1"
+      type: object
+      required:
+        - id
+        - name
+    CreateUserResponse:
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              default: 1
+          required:
+            - id
+        error:
+          type: 'null'
+      type: object
+      required:
+        - user
+        - error
+
+    PinsResponse:
+      properties:
+        nodes:
+          items:
+            $ref: '#/components/schemas/Pin'
+          type: array
+        error:
+          type: 'null'
+      type: object
+      required:
+        - nodes
+        - error
+    CreatePinBody:
+      properties:
+        _path:
+          type: string
+          default: "/"
+        path:
+          type: string
+          default: "body"
+        w:
+          type: number
+          default: 1080
+        _x:
+          type: number
+          default: 0
+        x:
+          type: number
+          default: 0
+        _y:
+          type: number
+          default: 0
+        y:
+          type: number
+          default: 0
+        text:
+          type: string
+          default: "This is amazing!"
+      type: object
+      required:
+        - path
+        - w
+        - x
+        - 'y'
+        - text
+    CreatePinResponse:
+      properties:
+        pin:
+          type: object
+          properties:
+            id:
+              type: integer
+              default: 1
+          required:
+            - id
+        error:
+          type: 'null'
+      type: object
+      required:
+        - pin
+        - error
+    CompletePinResponse:
+      properties:
+        success:
+          type: boolean
+          default: true
+        error:
+          type: 'null'
+      type: object
+      required:
+        - error
+    CreateCommentBody:
+      properties:
+        text:
+          type: string
+          default: "This is amazing!"
+      type: object
+      required:
+        - text
+    CreateCommentResponse:
+      properties:
+        comment:
+          type: object
+          properties:
+            id:
+              type: integer
+              default: 1
+          required:
+            - id
+        error:
+          type: 'null'
+      type: object
+      required:
+        - comment
+        - error
+    PinCommentsResponse:
+      properties:
+        nodes:
+          items:
+            $ref: '#/components/schemas/Comment'
+          type: array
+        error:
+          type: 'null'
+      type: object
+      required:
+        - comment
+        - error
+
+    UpdateCommentBody:
+      properties:
+        text:
+          type: string
+          default: "This is amazing!"
+      type: object
+      required:
+        - text
+    UpdateCommentResponse:
+      properties:
+        success:
+          type: boolean
+          default: true
+        error:
+          type: 'null'
+      type: object
+      required:
+        - error
+    DeleteCommentResponse:
+      properties:
+        success:
+          type: boolean
+          default: true
+        error:
+          type: 'null'
+      type: object
+      required:
+        - error

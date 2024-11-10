@@ -8,4 +8,4 @@ To prepare the servers, run `make prepare`. This will create a `servers/data.db`
 
 ### Docs
 
-There is a `.bruno` folder that you can use with [Bruno](https://www.usebruno.com/) to view a list of all endpoints.
+There is an `openapi.yml` file, and a `.bruno` folder that can be used with [Bruno](https://www.usebruno.com/) to view a list of all endpoints.
