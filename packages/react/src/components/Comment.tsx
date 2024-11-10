@@ -3,7 +3,7 @@ import { useSWRConfig } from 'swr';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { CheckCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 import type { Comment } from 'types';
 import { cn } from 'lib/helpers';
@@ -13,14 +13,17 @@ import { useActions, usePins } from 'lib/hooks';
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
 
-type CreatedAtProps = {
-  children: Comment['created_at'];
+type DateProps = {
+  comment: Comment;
 };
 
-const CreatedAt = ({ children }: CreatedAtProps) => {
+const Date = ({ comment }: DateProps) => {
   const enterTimeoutRef = useRef<NodeJS.Timeout>();
 
   const [isRelative, setIsRelative] = useState(true);
+
+  const isEdited = !dayjs(comment.created_at).isSame(comment.updated_at);
+  const value = isEdited ? comment.updated_at : comment.created_at;
 
   return (
     <span
@@ -31,7 +34,8 @@ const CreatedAt = ({ children }: CreatedAtProps) => {
         setIsRelative(true);
       }}
     >
-      {isRelative ? dayjs.utc(children).fromNow() : dayjs.utc(children).format('DD MMM YYYY HH:mm:ss')}
+      {isEdited ? 'Edited ' : null}
+      {isRelative ? dayjs.utc(value).fromNow() : dayjs.utc(value).format('DD MMM YYYY HH:mm')}
     </span>
   );
 };
@@ -63,7 +67,7 @@ export default function Comment({
   const ref = useRef<HTMLDivElement>(null);
 
   const user = useAppStore((state) => state.user);
-  const { setActiveId } = usePins();
+  const { setActiveId, setSelectedCommentId } = usePins();
   const actions = useActions();
 
   return (
@@ -76,13 +80,12 @@ export default function Comment({
         {!isReadonly && (
           <div className="flex gap-[3px]">
             {isRoot && showMarkAsDone && (
-              <button
-                className={cn(
-                  'flex size-6 items-center justify-center',
+              <Button
+                className={
                   isCompleted
                     ? 'rounded-full bg-lime-50 text-lime-500'
-                    : 'cursor-pointer rounded-md text-neutral-400 hover:bg-lime-50 hover:text-lime-500',
-                )}
+                    : 'cursor-pointer rounded-md text-neutral-400 hover:bg-lime-50 hover:text-lime-500'
+                }
                 onClick={async (e) => {
                   e.stopPropagation();
                   actions.completePin(comment.pin_id, isCompleted, () => {
@@ -91,29 +94,41 @@ export default function Comment({
                 }}
               >
                 <CheckCircleIcon className="size-5" />
-              </button>
+              </Button>
             )}
-            <button
-              className="flex size-6 items-center justify-center rounded-md text-neutral-400 hover:bg-rose-50 hover:text-rose-500"
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (isRoot) {
-                  actions.deletePin(comment.pin_id, async () => {
-                    await mutate(`/v1/pins?_path=${window.location.pathname}`);
-                    setActiveId(0, false);
-                  });
-                } else {
-                  actions.deleteComment(comment.pin_id, async () => mutate(`/v1/pins/${comment.pin_id}/comments`));
-                }
-              }}
-            >
-              <TrashIcon className="size-5" />
-            </button>
+
+            {comment.user.id === user.id ? (
+              <>
+                <Button
+                  className="text-neutral-400 hover:bg-neutral-50 hover:text-neutral-500"
+                  onClick={() => setSelectedCommentId(comment.id)}
+                >
+                  <PencilSquareIcon className="size-5" />
+                </Button>
+
+                <Button
+                  className="text-neutral-400 hover:bg-rose-50 hover:text-rose-500"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (isRoot) {
+                      actions.deletePin(comment.pin_id, async () => {
+                        await mutate(`/v1/pins?_path=${window.location.pathname}`);
+                        setActiveId(0, false);
+                      });
+                    } else {
+                      actions.deleteComment(comment.pin_id, async () => mutate(`/v1/pins/${comment.pin_id}/comments`));
+                    }
+                  }}
+                >
+                  <TrashIcon className="size-5" />
+                </Button>
+              </>
+            ) : null}
           </div>
         )}
       </div>
 
-      <CreatedAt>{comment.created_at}</CreatedAt>
+      <Date comment={comment} />
 
       <Text data={JSON.parse(comment.text)} isFixed={isFixed} />
 
@@ -124,6 +139,10 @@ export default function Comment({
       )}
     </div>
   );
+}
+
+function Button({ className, ...props }: React.ComponentPropsWithoutRef<'button'>) {
+  return <button className={cn('flex size-6 items-center justify-center rounded-md', className)} {...props} />;
 }
 
 type Child = {

@@ -10,6 +10,9 @@ interface PinState {
   isActiveIdLocked: boolean;
   setActiveId(activeId: number, isLocked?: boolean): void;
 
+  selectedCommentId: number;
+  setSelectedCommentId(selectedCommentId: number): void;
+
   tempPin: PinPosition | null;
   setTempPin(position: PinPosition | null): void;
 
@@ -32,6 +35,11 @@ export const usePinStore = create<PinState>()((set) => ({
     } else {
       set({ hoveredId: 0, activeId });
     }
+  },
+
+  selectedCommentId: 0,
+  setSelectedCommentId(selectedCommentId) {
+    set({ selectedCommentId });
   },
 
   tempPin: null,

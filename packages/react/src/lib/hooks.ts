@@ -75,10 +75,12 @@ export const usePins = () => {
       }) // Filter out pins that shouldn't be visible at the current breakpoints
     : [];
 
-  const { activeId, setActiveId, isActiveIdLocked } = usePinStore((state) => ({
+  const { activeId, setActiveId, isActiveIdLocked, selectedCommentId, setSelectedCommentId } = usePinStore((state) => ({
     activeId: state.activeId,
     setActiveId: state.setActiveId,
     isActiveIdLocked: state.isActiveIdLocked,
+    selectedCommentId: state.selectedCommentId,
+    setSelectedCommentId: state.setSelectedCommentId,
   }));
 
   return {
@@ -98,6 +100,11 @@ export const usePins = () => {
         const pin = document.getElementById(`__aloy-pin-${v}`);
         if (pin) pin.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
       }, 0);
+    },
+
+    selectedCommentId,
+    setSelectedCommentId(v: number) {
+      setSelectedCommentId(v);
     },
   } as const;
 };
@@ -188,6 +195,20 @@ export const useActions = () => {
       if (!text) return;
       const res = await fetch(`${apiUrl}/v1/pins/${pinId}/comments`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Aloy-App-ID': appId,
+          'Aloy-User-ID': userId,
+        },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      await onSuccess?.();
+    },
+    async updateComment(commentId: number, text: string, onSuccess?: () => Promise<void> | void) {
+      if (!text) return;
+      const res = await fetch(`${apiUrl}/v1/comments/${commentId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Aloy-App-ID': appId,

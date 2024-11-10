@@ -5,14 +5,16 @@ import isHotkey from 'is-hotkey';
 
 import TextEditor, { type TextEditorHandle } from 'components/TextEditor';
 
+import type { Comment } from 'types';
 import { usePinStore } from 'lib/stores';
 import { useActions } from 'lib/hooks';
 
-type AddCommentFormProps = {
+type SaveCommentFormProps = {
   pinId: number | null;
+  comment?: Comment;
 };
 
-export default function AddCommentForm({ pinId }: AddCommentFormProps) {
+export default function SaveCommentForm({ pinId, comment }: SaveCommentFormProps) {
   const { mutate } = useSWRConfig();
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -23,6 +25,7 @@ export default function AddCommentForm({ pinId }: AddCommentFormProps) {
     reset() {
       setText('');
       textEditorRef.current?.reset();
+      state.setSelectedCommentId(0);
       state.setTempPin(null);
     },
   }));
@@ -37,7 +40,9 @@ export default function AddCommentForm({ pinId }: AddCommentFormProps) {
       className="relative w-full"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (pinId) {
+        if (comment) {
+          await actions.updateComment(comment.id, text.trim(), async () => mutate(`/v1/pins/${pinId}/comments`));
+        } else if (pinId) {
           await actions.createComment(pinId, text.trim(), () => mutate(`/v1/pins/${pinId}/comments`));
         } else if (tempPin) {
           await actions.createPin(tempPin, text.trim(), () => mutate(`/v1/pins?_path=${window.location.pathname}`));
@@ -48,6 +53,7 @@ export default function AddCommentForm({ pinId }: AddCommentFormProps) {
       <TextEditor
         className="prose-sm min-h-16 w-full p-2.5"
         ref={textEditorRef}
+        initialValue={comment ? comment.text : ''}
         onChange={(v) => setText(v)}
         onKeyDown={(e) => {
           if (!isHotkey('enter', e)) return;

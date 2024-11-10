@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 
 import Comment from 'components/Comment';
-import AddCommentForm from 'components/AddCommentForm';
+import AddCommentForm from 'components/SaveCommentForm';
 
 import { State, type Pin, type Comment as C } from 'types';
 import { usePinPosition } from 'lib/hooks';
@@ -129,13 +129,17 @@ export default function Pin({ pin }: PinProps) {
 }
 
 const Replies = ({ pinId }: { pinId: Pin['id'] }) => {
+  const selectedCommentId = usePinStore((state) => state.selectedCommentId);
   const { data } = useSWR<{ nodes: C[] }>(`/v1/pins/${pinId}/comments`);
   return (
     <>
-      {(data?.nodes || []).map((comment) => (
-        <Comment key={comment.id} comment={{ pin_id: pinId, ...comment }} />
-      ))}
-      <AddCommentForm pinId={pinId} />
+      {(data?.nodes || []).map((comment) => {
+        if (selectedCommentId === comment.id) {
+          return <AddCommentForm key={comment.id} pinId={pinId} comment={comment} />;
+        }
+        return <Comment key={comment.id} comment={{ pin_id: pinId, ...comment }} />;
+      })}
+      {!selectedCommentId ? <AddCommentForm pinId={pinId} /> : null}
     </>
   );
 };
