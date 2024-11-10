@@ -21,7 +21,7 @@ CREATE TABLE pins (
   y REAL NOT NULL,
   created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
   completed_at INTEGER,
-  completed_by_id TEXT,
+  completed_by_id INT,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (completed_by_id) REFERENCES users(id) ON DELETE CASCADE
 );

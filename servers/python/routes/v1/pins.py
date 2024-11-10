@@ -156,7 +156,7 @@ def delete_pin(
 
 
 @router.get("/{pin_id}/comments")
-def pin_comments(
+def get_pin_comments(
     pin_id: Annotated[int, Path()],
     response: Response,
     db: sqlite3.Connection = Depends(get_db),

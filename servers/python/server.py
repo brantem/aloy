@@ -18,11 +18,19 @@ app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
+    is_missing_app_id = False
+    is_missing_user_id = False
     for error in exc.errors():
         if error["type"] == "missing" and "aloy-app-id" in error["loc"]:
-            return JSONResponse(content={"error": {"code": "MISSING_APP_ID"}}, status_code=status.HTTP_400_BAD_REQUEST)
+            is_missing_app_id = True
         elif error["type"] == "missing" and "aloy-user-id" in error["loc"]:
-            return JSONResponse(content={"error": {"code": "MISSING_USER_ID"}}, status_code=status.HTTP_400_BAD_REQUEST)
+            is_missing_user_id = True
+
+    if is_missing_app_id:
+        return JSONResponse(content={"error": {"code": "MISSING_APP_ID"}}, status_code=status.HTTP_400_BAD_REQUEST)
+    elif is_missing_user_id:
+        return JSONResponse(content={"error": {"code": "MISSING_USER_ID"}}, status_code=status.HTTP_400_BAD_REQUEST)
+
     return await request_validation_exception_handler(request, exc)
 
 

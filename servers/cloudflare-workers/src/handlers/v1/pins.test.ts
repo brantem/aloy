@@ -126,7 +126,7 @@ describe('/pins/:id', () => {
     expect(await env.DB.prepare('SELECT completed_at, completed_by_id FROM pins').first()).toEqual(
       expect.objectContaining({
         completed_at: expect.any(String),
-        completed_by_id: '1',
+        completed_by_id: 1,
       }),
     );
     expect(res.status).toBe(200);
