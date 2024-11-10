@@ -2,49 +2,41 @@ import { create } from 'zustand';
 
 import { State, type User } from 'types';
 
-type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-
-type DeepNonNullable<T> = {
-  [K in keyof T]: DeepNonNullable<T[K] & {}>;
-};
-
 interface AppState {
+  isReady: boolean;
   isHidden: boolean;
   close(): void;
 
-  fetcher: Fetcher;
-  user: User;
-  setUser(user: User): void;
+  apiUrl: string;
+  appId: string;
   breakpoints: number[];
-  load(state: { apiUrl: string; appId: string } & DeepNonNullable<Pick<AppState, 'user' | 'breakpoints'>>): void;
+  setup(state: Pick<AppState, 'apiUrl' | 'appId' | 'breakpoints'>): void;
+
+  user: User;
+  start(state: Pick<AppState, 'user'>): void;
 
   active: State;
   setActive(active: State): void;
 }
 
 export const useAppStore = create<AppState>()((set) => ({
+  isReady: false,
   isHidden: true,
   close() {
     set({ isHidden: true });
   },
 
-  fetcher() {
-    return Promise.resolve(new Response());
-  },
-  user: null as unknown as User,
-  setUser(user) {
-    set({ user });
-  },
+  apiUrl: '',
+  appId: '',
+  userId: 0,
   breakpoints: [],
-  load({ apiUrl, appId, ...state }) {
-    set({
-      isHidden: false,
-      async fetcher(input, init) {
-        const headers = { ...(init?.headers || {}), 'Aloy-App-ID': appId, 'Aloy-User-ID': state.user.id.toString() };
-        return fetch(apiUrl + input, { ...(init || {}), headers });
-      },
-      ...state,
-    });
+  setup(state) {
+    set({ isReady: true, ...state });
+  },
+
+  user: null as unknown as User,
+  start(state) {
+    set({ isHidden: false, ...state });
   },
 
   active: State.Nothing,

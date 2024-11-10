@@ -1,6 +1,5 @@
 import { useEffect, useImperativeHandle, forwardRef } from 'react';
 import { SWRConfig } from 'swr';
-import Cookies from 'js-cookie';
 
 import Area from 'components/Area';
 import Inbox from 'components/Inbox';
@@ -10,6 +9,7 @@ import Pins from 'components/Pins';
 import { State, User } from 'types';
 import type { User as ExternalUser } from 'types/external';
 import { useAppStore } from 'lib/stores';
+import { useActions } from 'lib/hooks';
 
 export type AloyHandle = {
   saveUser(user: ExternalUser): Promise<User | null>;
@@ -22,58 +22,31 @@ export type AloyProps = {
   user: ExternalUser;
 };
 
-const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
-  return {
-    apiUrl: apiUrl.trim(),
-    appId: appId.trim(),
-    breakpoints: breakpoints.filter((v) => !isNaN(v)),
-    user: { id: user.id.trim(), name: user.name.trim() },
-  };
-};
-
-const key = '__aloy-user';
-
-const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
-  const { apiUrl, appId, breakpoints, user } = processProps(props);
-
-  const { fetcher, setUser, load, isHidden, isAddingComment } = useAppStore((state) => ({
-    fetcher: state.fetcher,
-    setUser: state.setUser,
-    load: state.load,
-    isHidden: state.isHidden,
-    isAddingComment: state.active === State.AddComment,
-  }));
-
-  const saveUser = async (user: ExternalUser) => {
-    const res = await fetch(`${apiUrl}/v1/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Aloy-App-ID': appId },
-      body: JSON.stringify(user),
-    });
-    const userId = (await res.json()).user.id;
-    if (!userId) return null;
-
-    const v = { id: userId, name: user.name } satisfies User;
-    Cookies.set(key, JSON.stringify(v), { expires: 1, path: '/' });
-    setUser(v);
-
-    return v;
-  };
+const Aloy = forwardRef<AloyHandle, Pick<AloyProps, 'user'>>(function Aloy(props, ref) {
+  const { isHidden, apiUrl, headers, start, isAddingComment } = useAppStore((state) => {
+    return {
+      isHidden: state.isHidden,
+      apiUrl: state.apiUrl,
+      headers: {
+        'Aloy-App-ID': state.appId,
+        'Aloy-User-ID': state.user ? state.user.id.toString() : '',
+      },
+      start: state.start,
+      isAddingComment: state.active === State.AddComment,
+    };
+  });
+  const actions = useActions();
 
   useImperativeHandle(ref, () => ({
-    saveUser,
+    saveUser: actions.saveUser,
   }));
 
   useEffect(() => {
-    if (!apiUrl || !appId || !user.id || !user.name) return;
     (async () => {
-      let v: User | null = JSON.parse(Cookies.get(key) || 'null');
-      if (v && v.name === user.name) return load({ apiUrl, appId, user: v, breakpoints });
+      const user = await actions.saveUser(props.user);
+      if (!user) return; // TODO
 
-      v = await saveUser(user);
-      if (!v) return; // TODO
-
-      load({ apiUrl, appId, user: v, breakpoints });
+      start({ user });
     })();
   }, []);
 
@@ -83,7 +56,7 @@ const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
     <SWRConfig
       value={{
         async fetcher(url: string) {
-          const res = await fetcher(url);
+          const res = await fetch(`${apiUrl}${url}`, { headers });
           return await res.json();
         },
       }}
@@ -96,4 +69,26 @@ const Aloy = forwardRef<AloyHandle, AloyProps>(function Aloy(props, ref) {
   );
 });
 
-export default Aloy;
+const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
+  return {
+    apiUrl: apiUrl.trim(),
+    appId: appId.trim(),
+    breakpoints: breakpoints.filter((v) => !isNaN(v)),
+    user: { id: user.id.trim(), name: user.name.trim() },
+  };
+};
+
+export default forwardRef<AloyHandle, AloyProps>(function Wrapper(props, ref) {
+  const { apiUrl, appId, breakpoints, user } = processProps(props);
+
+  const { isReady, setup } = useAppStore((state) => ({ isReady: state.isReady, setup: state.setup }));
+
+  useEffect(() => {
+    if (!apiUrl || !appId || !user.id || !user.name) return;
+    setup({ apiUrl, appId, breakpoints });
+  }, []);
+
+  if (!isReady) return;
+
+  return <Aloy ref={ref} user={user} />;
+});

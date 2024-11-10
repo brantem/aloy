@@ -11,7 +11,6 @@ type AddCommentCardProps = {
 
 export default function AddCommentCard({ p }: AddCommentCardProps) {
   const position = usePinPosition(p);
-
   if (!position) return null;
 
   return createPortal(

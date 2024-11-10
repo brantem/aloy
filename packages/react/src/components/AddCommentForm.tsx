@@ -5,7 +5,8 @@ import isHotkey from 'is-hotkey';
 
 import TextEditor, { type TextEditorHandle } from 'components/TextEditor';
 
-import { useAppStore, usePinStore } from 'lib/stores';
+import { usePinStore } from 'lib/stores';
+import { useActions } from 'lib/hooks';
 
 type AddCommentFormProps = {
   pinId: number | null;
@@ -14,9 +15,9 @@ type AddCommentFormProps = {
 export default function AddCommentForm({ pinId }: AddCommentFormProps) {
   const { mutate } = useSWRConfig();
 
+  const formRef = useRef<HTMLFormElement>(null);
   const textEditorRef = useRef<TextEditorHandle>(null);
 
-  const fetcher = useAppStore((state) => state.fetcher);
   const { tempPin, reset } = usePinStore((state) => ({
     tempPin: state.tempPin,
     reset() {
@@ -25,32 +26,9 @@ export default function AddCommentForm({ pinId }: AddCommentFormProps) {
       state.setTempPin(null);
     },
   }));
-
-  const formRef = useRef<HTMLFormElement>(null);
+  const actions = useActions();
 
   const [text, setText] = useState('');
-
-  const createPin = async (text: string) => {
-    if (!text) return;
-    const res = await fetcher('/v1/pins', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ _path: window.location.pathname, ...tempPin, text }),
-    });
-    if (!res.ok) return;
-    mutate(`/v1/pins?_path=${window.location.pathname}`);
-  };
-
-  const createComment = async (text: string) => {
-    if (!text) return;
-    const res = await fetcher(`/v1/pins/${pinId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) return;
-    mutate(`/v1/pins/${pinId}/comments`);
-  };
 
   return (
     <form
@@ -59,7 +37,11 @@ export default function AddCommentForm({ pinId }: AddCommentFormProps) {
       className="relative w-full"
       onSubmit={async (e) => {
         e.preventDefault();
-        await (pinId ? createComment : createPin)(text.trim()); // lol
+        if (pinId) {
+          await actions.createComment(pinId, text.trim(), () => mutate(`/v1/pins/${pinId}/comments`));
+        } else if (tempPin) {
+          await actions.createPin(tempPin, text.trim(), () => mutate(`/v1/pins?_path=${window.location.pathname}`));
+        }
         reset();
       }}
     >

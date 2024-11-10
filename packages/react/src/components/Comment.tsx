@@ -8,7 +8,7 @@ import { CheckCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import type { Comment } from 'types';
 import { cn } from 'lib/helpers';
 import { useAppStore } from 'lib/stores';
-import { usePins } from 'lib/hooks';
+import { useActions, usePins } from 'lib/hooks';
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
@@ -62,8 +62,9 @@ export default function Comment({
   const { mutate } = useSWRConfig();
   const ref = useRef<HTMLDivElement>(null);
 
-  const { user, fetcher } = useAppStore((state) => ({ user: state.user, fetcher: state.fetcher }));
+  const user = useAppStore((state) => state.user);
   const { setActiveId } = usePins();
+  const actions = useActions();
 
   return (
     <div ref={ref} className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
@@ -84,13 +85,9 @@ export default function Comment({
                 )}
                 onClick={async (e) => {
                   e.stopPropagation();
-                  const res = await fetcher(`/v1/pins/${comment.pin_id}/complete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: isCompleted ? '0' : '1',
+                  actions.completePin(comment.pin_id, isCompleted, () => {
+                    mutate(`/v1/pins?_path=${window.location.pathname}`);
                   });
-                  if (!res.ok) return;
-                  mutate(`/v1/pins?_path=${window.location.pathname}`);
                 }}
               >
                 <CheckCircleIcon className="size-5" />
@@ -101,14 +98,12 @@ export default function Comment({
               onClick={async (e) => {
                 e.stopPropagation();
                 if (isRoot) {
-                  const res = await fetcher(`/v1/pins/${comment.pin_id}`, { method: 'DELETE' });
-                  if (!res.ok) return;
-                  await mutate(`/v1/pins?_path=${window.location.pathname}`);
-                  setActiveId(0);
+                  actions.deletePin(comment.pin_id, async () => {
+                    await mutate(`/v1/pins?_path=${window.location.pathname}`);
+                    setActiveId(0, false);
+                  });
                 } else {
-                  const res = await fetcher(`/v1/comments/${comment.id}`, { method: 'DELETE' });
-                  if (!res.ok) return;
-                  await mutate(`/v1/pins/${comment.pin_id}/comments`);
+                  actions.deleteComment(comment.pin_id, async () => mutate(`/v1/pins/${comment.pin_id}/comments`));
                 }
               }}
             >

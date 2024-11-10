@@ -1,7 +1,9 @@
 import { useState, useLayoutEffect, useEffect } from 'react';
 import useSWR from 'swr';
+import Cookies from 'js-cookie';
 
-import type { PinPosition, Pin } from 'types';
+import type { User, PinPosition, Pin } from 'types';
+import type { User as ExternalUser } from 'types/external';
 import { isElementHidden } from 'lib/helpers';
 import { useAppStore, usePinStore } from 'lib/stores';
 
@@ -110,4 +112,102 @@ export const useEscape = (cb: () => void) => {
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
   }, []);
+};
+
+export const useActions = () => {
+  const { apiUrl, appId, userId } = useAppStore((state) => ({
+    apiUrl: state.apiUrl,
+    appId: state.appId,
+    userId: state.user ? state.user.id.toString() : '',
+  }));
+
+  return {
+    async saveUser(user: ExternalUser) {
+      const key = '__aloy-user';
+
+      let v: User | null = JSON.parse(Cookies.get(key) || 'null');
+      if (v && v.name === user.name) return v;
+
+      const res = await fetch(`${apiUrl}/v1/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Aloy-App-ID': appId,
+        },
+        body: JSON.stringify(user),
+      });
+      const userId = (await res.json()).user.id;
+      if (!userId) return null;
+
+      v = { id: userId, name: user.name };
+      Cookies.set(key, JSON.stringify(v), { expires: 1, path: '/' });
+
+      return v;
+    },
+
+    async createPin(tempPin: PinPosition, text: string, onSuccess?: () => Promise<void> | void) {
+      if (!text) return;
+      const res = await fetch(`${apiUrl}/v1/pins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Aloy-App-ID': appId,
+          'Aloy-User-ID': userId,
+        },
+        body: JSON.stringify({ _path: window.location.pathname, ...tempPin, text }),
+      });
+      if (!res.ok) return;
+      await onSuccess?.();
+    },
+    async completePin(pinId: number, v: boolean, onSuccess?: () => Promise<void> | void) {
+      const res = await fetch(`${apiUrl}/v1/pins/${pinId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+          'Aloy-App-ID': appId,
+          'Aloy-User-ID': userId,
+        },
+        body: v ? '0' : '1',
+      });
+      if (!res.ok) return;
+      await onSuccess?.();
+    },
+    async deletePin(pinId: number, onSuccess?: () => Promise<void> | void) {
+      const res = await fetch(`${apiUrl}/v1/pins/${pinId}`, {
+        method: 'DELETE',
+        headers: {
+          'Aloy-App-ID': appId,
+          'Aloy-User-ID': userId,
+        },
+      });
+      if (!res.ok) return;
+      await onSuccess?.();
+    },
+
+    async createComment(pinId: number, text: string, onSuccess?: () => Promise<void> | void) {
+      if (!text) return;
+      const res = await fetch(`${apiUrl}/v1/pins/${pinId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Aloy-App-ID': appId,
+          'Aloy-User-ID': userId,
+        },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      await onSuccess?.();
+    },
+    async deleteComment(commentId: number, onSuccess?: () => Promise<void> | void) {
+      const res = await fetch(`${apiUrl}/v1/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Aloy-App-ID': appId,
+          'Aloy-User-ID': userId,
+        },
+      });
+      if (!res.ok) return;
+      await onSuccess?.();
+    },
+  };
 };
