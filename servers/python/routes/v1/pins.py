@@ -215,9 +215,9 @@ def create_comment(
 
 def get_users(db: sqlite3.Connection, user_ids: list[int]):
     try:
-        sql = "SELECT _id, id, name FROM users WHERE id IN ({})".format(",".join("?" * len(user_ids)))
+        sql = "SELECT id, name FROM users WHERE id IN ({})".format(",".join("?" * len(user_ids)))
         users = db.execute(sql, user_ids).fetchall()
-        return {user["id"]: {"id": user["_id"], "name": user["name"]} for user in users}
+        return {user["id"]: dict(user) for user in users}
     except Exception as e:
         logger.error(f"pins.get_users: {e}")
         return {}

@@ -54,7 +54,7 @@ func Test_pins(t *testing.T) {
 
 		mock.ExpectQuery("SELECT .+ FROM users").
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"_id", "id", "name"}).AddRow("user-1", 1, "User 1"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "User 1"))
 
 		mock.ExpectQuery("SELECT .+ FROM comments").
 			WithArgs(1).
@@ -70,7 +70,7 @@ func Test_pins(t *testing.T) {
 		assert.Equal(fiber.StatusOK, resp.StatusCode)
 		assert.Equal("1", resp.Header.Get("X-Total-Count"))
 		body, _ := io.ReadAll(resp.Body)
-		assert.Equal(`{"nodes":[{"id":1,"user":{"id":"user-1","name":"User 1"},"comment":{"id":1,"text":"Test","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"},"path":"body","w":1080,"_x":100,"x":100,"_y":100,"y":100,"completed_at":null,"total_replies":0}],"error":null}`, string(body))
+		assert.Equal(`{"nodes":[{"id":1,"user":{"id":1,"name":"User 1"},"comment":{"id":1,"text":"Test","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"},"path":"body","w":1080,"_x":100,"x":100,"_y":100,"y":100,"completed_at":null,"total_replies":0}],"error":null}`, string(body))
 	})
 }
 
@@ -213,7 +213,7 @@ func Test_pinComments(t *testing.T) {
 
 		mock.ExpectQuery("SELECT .+ FROM users").
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"_id", "id", "name"}).AddRow("user-1", 1, "User 1"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "User 1"))
 
 		app := fiber.New()
 		h.Register(app, m)
@@ -225,7 +225,7 @@ func Test_pinComments(t *testing.T) {
 		assert.Equal(fiber.StatusOK, resp.StatusCode)
 		assert.Equal("1", resp.Header.Get("X-Total-Count"))
 		body, _ := io.ReadAll(resp.Body)
-		assert.Equal(`{"nodes":[{"id":1,"user":{"id":"user-1","name":"User 1"},"text":"Test","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}],"error":null}`, string(body))
+		assert.Equal(`{"nodes":[{"id":1,"user":{"id":1,"name":"User 1"},"text":"Test","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}],"error":null}`, string(body))
 	})
 }
 

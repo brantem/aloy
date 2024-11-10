@@ -31,7 +31,7 @@ def test_get_pins(client: TestClient, db: sqlite3.Connection):
                 {
                     "id": 1,
                     "user": {
-                        "id": "user-1",
+                        "id": 1,
                         "name": "User 1",
                     },
                     "comment": {
@@ -177,7 +177,7 @@ def test_get_pin_comments(client: TestClient, db: sqlite3.Connection):
                 {
                     "id": 3,
                     "user": {
-                        "id": "user-1",
+                        "id": 1,
                         "name": "User 1",
                     },
                     "text": "c",

@@ -15,7 +15,7 @@ func (h *Handler) getUsers(ctx context.Context, userIds []int) (map[int]*model.U
 		return nil, nil
 	}
 
-	query, args, err := sqlx.In(`SELECT _id, id, name FROM users WHERE id IN (?)`, userIds)
+	query, args, err := sqlx.In(`SELECT id, name FROM users WHERE id IN (?)`, userIds)
 	if err != nil {
 		log.Error().Err(err).Msg("user.getUsers")
 		return nil, constant.ErrInternalServerError
@@ -30,15 +30,12 @@ func (h *Handler) getUsers(ctx context.Context, userIds []int) (map[int]*model.U
 
 	m := make(map[int]*model.User, len(userIds))
 	for rows.Next() {
-		var node struct {
-			model.User
-			ID int
-		}
+		var node model.User
 		if err := rows.StructScan(&node); err != nil {
 			log.Error().Err(err).Msg("user.getUsers")
 			return nil, constant.ErrInternalServerError
 		}
-		m[node.ID] = &node.User
+		m[node.ID] = &node
 	}
 
 	return m, nil

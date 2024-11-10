@@ -125,12 +125,12 @@ export default pins;
 
 const getUsers = async (d1: D1Database, ids: string[]) => {
   const stmt = d1.prepare(`
-    SELECT _id, id, name
+    SELECT id, name
     FROM users
     WHERE id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
   `);
   return (await stmt.bind(...ids).all<User>()).results.reduce(
-    (users, user) => ({ ...users, [user.id]: { id: user._id, name: user.name } }),
+    (users, user) => ({ ...users, [user.id]: user }),
     {} as { [id: string]: User },
   );
 };

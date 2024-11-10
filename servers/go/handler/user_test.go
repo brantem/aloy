@@ -29,13 +29,12 @@ func Test_getUsers(t *testing.T) {
 		db, mock := db.New()
 		h := New(db)
 
-		userID := "user-1"
 		mock.ExpectQuery("SELECT .+ FROM users").
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"_id", "id", "name"}).AddRow(userID, 1, "User 1"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "User 1"))
 
 		m, err := h.getUsers(context.TODO(), []int{1})
-		assert.Equal(userID, m[1].ID)
+		assert.Equal(1, m[1].ID)
 		assert.Nil(err)
 	})
 }

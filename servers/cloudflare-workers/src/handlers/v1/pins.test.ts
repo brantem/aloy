@@ -36,7 +36,7 @@ describe('/pins', () => {
         expect.objectContaining({
           id: 1,
           user: {
-            id: 'user-1',
+            id: 1,
             name: 'User 1',
           },
           comment: expect.objectContaining({
@@ -167,7 +167,7 @@ describe('/pins/:id', () => {
         expect.objectContaining({
           id: 2,
           user: {
-            id: 'user-1',
+            id: 1,
             name: 'User 1',
           },
           text: 'b',
