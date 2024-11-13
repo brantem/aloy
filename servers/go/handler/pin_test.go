@@ -95,7 +95,7 @@ func Test_createPin(t *testing.T) {
 	app := fiber.New()
 	h.Register(app, m)
 
-	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins", strings.NewReader(`{"_path":"/","path":"body","w":1080,"_x":100,"x":100,"_y":100,"y":100,"text":"Test"}`))
+	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins", strings.NewReader(`{"_path":" / ","path":" body ","w":1080,"_x":100,"x":100,"_y":100,"y":100,"text":" Test "}`))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, _ := app.Test(req)
@@ -120,7 +120,7 @@ func Test_completePin(t *testing.T) {
 		app := fiber.New()
 		h.Register(app, m)
 
-		req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/complete", strings.NewReader("1"))
+		req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/complete", strings.NewReader(" 1 "))
 
 		resp, _ := app.Test(req)
 		assert.Nil(mock.ExpectationsWereMet())
@@ -141,7 +141,7 @@ func Test_completePin(t *testing.T) {
 		app := fiber.New()
 		h.Register(app, m)
 
-		req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/complete", strings.NewReader("a"))
+		req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/complete", strings.NewReader(" a "))
 
 		resp, _ := app.Test(req)
 		assert.Nil(mock.ExpectationsWereMet())
@@ -241,7 +241,7 @@ func Test_createComment(t *testing.T) {
 	app := fiber.New()
 	h.Register(app, m)
 
-	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/comments", strings.NewReader(`{"text":"Test"}`))
+	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/comments", strings.NewReader(`{"text":" Test "}`))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, _ := app.Test(req)

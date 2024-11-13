@@ -4,7 +4,7 @@ from typing import Annotated
 
 from anyio import Path
 from fastapi import APIRouter, Depends, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from routes.deps import get_db, get_user_id
 
@@ -12,14 +12,21 @@ logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/comments", dependencies=[Depends(get_user_id)])
 
 
-class UpdateComment(BaseModel):
+class UpdateCommentBody(BaseModel):
     text: str
+
+    @field_validator("text")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("INVALID")
+        return v.strip()
 
 
 @router.patch("/{comment_id}")
 def update_comment(
     comment_id: Annotated[int, Path()],
-    body: UpdateComment,
+    body: UpdateCommentBody,
     response: Response,
     db: sqlite3.Connection = Depends(get_db),
     user_id=Depends(get_user_id),

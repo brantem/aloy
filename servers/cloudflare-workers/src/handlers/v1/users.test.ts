@@ -12,35 +12,27 @@ app.route('/users', users);
 
 describe('/users', () => {
   test('POST /', async () => {
+    async function createUser(body: Record<string, any>) {
+      return app.request(
+        '/users',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+        env,
+      );
+    }
+
+    const user = { _id: 'user-1', id: 1, app_id: 'test', name: 'User 1' };
     expect(await env.DB.prepare('SELECT id FROM users').first()).toBeNull();
-    const res = await app.request(
-      '/users',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: 'user-1', name: 'User 1' }),
-      },
-      env,
-    );
-    expect(await env.DB.prepare('SELECT * FROM users').first()).toEqual({
-      _id: 'user-1',
-      id: 1,
-      app_id: 'test',
-      name: 'User 1',
-    });
+    const res = await createUser({ id: ' user-1 ', name: ' User 1 ' });
+    expect((await env.DB.prepare('SELECT * FROM users').all()).results).toEqual([user]);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ user: { id: 1 }, error: null });
 
     // upsert
-    await app.request(
-      '/users',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: 'user-1', name: 'User 1' }),
-      },
-      env,
-    );
-    expect((await env.DB.prepare('SELECT COUNT(id) FROM users').raw())[0][0]).toEqual(1);
+    await createUser({ id: ' user-1 ', name: ' User 1 ' });
+    expect((await env.DB.prepare('SELECT * FROM users').all()).results).toEqual([user]);
   });
 });

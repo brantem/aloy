@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brantem/aloy/constant"
+	"github.com/brantem/aloy/handler/body"
 	"github.com/brantem/aloy/model"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
@@ -51,14 +52,13 @@ func (h *Handler) createUser(c *fiber.Ctx) error {
 		Error any   `json:"error"`
 	}
 
-	var body struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
+	var data struct {
+		ID   string `json:"id" validate:"trim,required"`
+		Name string `json:"name" validate:"trim,required"`
 	}
-	if err := c.BodyParser(&body); err != nil {
-		log.Error().Err(err).Msg("user.createUser")
-		result.Error = constant.RespInternalServerError
-		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	if err := body.Parse(c, &data); err != nil {
+		result.Error = err
+		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
 	var user User
@@ -67,7 +67,7 @@ func (h *Handler) createUser(c *fiber.Ctx) error {
 		VALUES (?, ?, ?)
 		ON CONFLICT (_id, app_id) DO UPDATE SET name = EXCLUDED.name
 		RETURNING id
-	`, body.ID, c.Locals(constant.AppIDKey), body.Name).Scan(&user.ID)
+	`, data.ID, c.Locals(constant.AppIDKey), data.Name).Scan(&user.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("user.createUser")
 		result.Error = constant.RespInternalServerError

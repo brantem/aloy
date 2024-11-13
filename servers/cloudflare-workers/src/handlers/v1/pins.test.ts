@@ -65,14 +65,14 @@ describe('/pins', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          _path: '/',
-          path: 'body',
+          _path: ' / ',
+          path: ' body ',
           w: 1,
           _x: 0,
           x: 0,
           _y: 0,
           y: 0,
-          text: 'a',
+          text: ' a ',
         }),
       },
       env,
@@ -94,12 +94,7 @@ describe('/pins', () => {
       }),
     );
     expect(await env.DB.prepare('SELECT * FROM comments').first()).toEqual(
-      expect.objectContaining({
-        id: 1,
-        pin_id: 1,
-        user_id: 1,
-        text: 'a',
-      }),
+      expect.objectContaining({ id: 1, pin_id: 1, user_id: 1, text: 'a' }),
     );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ pin: { id: 1 }, error: null });
@@ -122,7 +117,7 @@ describe('/pins/:id', () => {
     });
 
     // complete
-    const res = await app.request('/pins/1/complete', { method: 'POST', body: '1' }, env);
+    const res = await app.request('/pins/1/complete', { method: 'POST', body: ' 1 ' }, env);
     expect(await env.DB.prepare('SELECT completed_at, completed_by_id FROM pins').first()).toEqual(
       expect.objectContaining({
         completed_at: expect.any(String),
@@ -133,7 +128,7 @@ describe('/pins/:id', () => {
     expect(await res.json()).toEqual({ success: true, error: null });
 
     // uncomplete
-    const res2 = await app.request('/pins/1/complete', { method: 'POST', body: '0' }, env);
+    const res2 = await app.request('/pins/1/complete', { method: 'POST', body: ' a ' }, env);
     expect(await env.DB.prepare('SELECT completed_at, completed_by_id FROM pins').first()).toEqual({
       completed_at: null,
       completed_by_id: null,
@@ -179,19 +174,18 @@ describe('/pins/:id', () => {
 
   test('POST /comments', async () => {
     const comment = expect.objectContaining({ id: 1, pin_id: 1, user_id: 1, text: 'a' });
-
     expect((await env.DB.prepare('SELECT * FROM comments').all()).results).toEqual([comment]);
+
+    const comment2 = expect.objectContaining({ id: 2, pin_id: 1, user_id: 1, text: 'b' });
     const res = await app.request(
       '/pins/1/comments',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'b' }),
+        body: JSON.stringify({ text: ' b ' }),
       },
       env,
     );
-
-    const comment2 = expect.objectContaining({ id: 2, pin_id: 1, user_id: 1, text: 'b' });
     expect((await env.DB.prepare('SELECT * FROM comments').all()).results).toEqual([comment, comment2]);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ comment: { id: 2 }, error: null });

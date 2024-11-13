@@ -26,7 +26,7 @@ describe('/comments', () => {
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'ab' }),
+        body: JSON.stringify({ text: ' ab ' }),
       },
       env,
     );

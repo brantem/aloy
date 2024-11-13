@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
+from pydantic import BaseModel, field_validator
 
 import db as _db
 from routes.deps import get_app_id, get_db, get_user_id
@@ -23,11 +24,26 @@ def db():
     conn.close()
 
 
+class ValidationBody(BaseModel):
+    text: str
+
+    @field_validator("text")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("INVALID")
+        return v.strip()
+
+
 @pytest.fixture
-def raw_client():
+def mock_client():
     @app.get("/headers", dependencies=[Depends(get_app_id), Depends(get_user_id)])
     async def headers():
         return {"success": True}
+
+    @app.post("/validation")
+    async def validation(body: ValidationBody):
+        return body
 
     with TestClient(app) as client:
         yield client

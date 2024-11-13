@@ -2,7 +2,7 @@ import logging
 import sqlite3
 
 from fastapi import APIRouter, Depends, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from routes.deps import get_app_id, get_db
 
@@ -10,16 +10,21 @@ logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/users")
 
 
-class CreateUser(BaseModel):
+class CreateUserBody(BaseModel):
     id: str
     name: str
 
+    @field_validator("id", "name")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("INVALID")
+        return v.strip()
 
-@router.post(
-    "/",
-)
+
+@router.post("/")
 async def get_users(
-    body: CreateUser,
+    body: CreateUserBody,
     response: Response,
     db: sqlite3.Connection = Depends(get_db),
     app_id=Depends(get_app_id),

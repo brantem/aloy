@@ -2,8 +2,8 @@ import logging
 import sqlite3
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Request, Response, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, Path, Response, status
+from pydantic import BaseModel, Field, field_validator
 
 from routes.deps import get_app_id, get_db, get_user_id
 
@@ -63,17 +63,33 @@ def get_pins(
         return {"nodes": [], "error": {"code": "INTERNAL_SERVER_ERROR"}}
 
 
+class CreatePinBody(BaseModel):
+    underscore_path: str = Field(alias="_path")
+    path: str
+    w: float
+    underscore_x: float = Field(alias="_x")
+    x: float
+    underscore_y: float = Field(alias="_y")
+    y: float
+    text: str
+
+    @field_validator("underscore_path", "path", "text")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("INVALID")
+        return v.strip()
+
+
 @router.post("/")
 async def create_pin(
-    request: Request,
+    body: CreatePinBody,
     response: Response,
     db: sqlite3.Connection = Depends(get_db),
     app_id=Depends(get_app_id),
     user_id=Depends(get_user_id),
 ):
     try:
-        body = await request.json()
-
         sql = """
             INSERT INTO pins (app_id, user_id, _path, path, w, _x, x, _y, y)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -82,18 +98,18 @@ async def create_pin(
         params = (
             app_id,
             user_id,
-            body.get("_path"),
-            body.get("path"),
-            body.get("w"),
-            body.get("_x"),
-            body.get("x"),
-            body.get("_y"),
-            body.get("y"),
+            body.underscore_path,
+            body.path,
+            body.w,
+            body.underscore_x,
+            body.x,
+            body.underscore_y,
+            body.y,
         )
         pin = db.execute(sql, params).fetchone()
 
         sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?)"
-        db.execute(sql, (pin["id"], user_id, body.get("text")))
+        db.execute(sql, (pin["id"], user_id, body.text))
 
         db.commit()
         return {"pin": {"id": pin["id"]}, "error": None}
@@ -112,7 +128,7 @@ def complete_pin(
     user_id=Depends(get_user_id),
 ):
     try:
-        if body == "1":
+        if body.strip() == "1":
             db.execute(
                 """
                     UPDATE pins
@@ -191,14 +207,21 @@ def get_pin_comments(
         return {"nodes": [], "error": {"code": "INTERNAL_SERVER_ERROR"}}
 
 
-class CreateComment(BaseModel):
+class CreateCommentBody(BaseModel):
     text: str
+
+    @field_validator("text")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("INVALID")
+        return v.strip()
 
 
 @router.post("/{pin_id}/comments")
 def create_comment(
     pin_id: Annotated[int, Path()],
-    body: CreateComment,
+    body: CreateCommentBody,
     response: Response,
     db: sqlite3.Connection = Depends(get_db),
     user_id=Depends(get_user_id),

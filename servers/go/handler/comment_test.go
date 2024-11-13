@@ -25,7 +25,7 @@ func Test_updateComment(t *testing.T) {
 	app := fiber.New()
 	h.Register(app, m)
 
-	req := httptest.NewRequest(fiber.MethodPatch, "/v1/comments/1", strings.NewReader(`{"text":"abc"}`))
+	req := httptest.NewRequest(fiber.MethodPatch, "/v1/comments/1", strings.NewReader(`{"text":" abc "}`))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, _ := app.Test(req)

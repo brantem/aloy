@@ -51,7 +51,7 @@ func Test_createUser(t *testing.T) {
 	app := fiber.New()
 	h.Register(app, m)
 
-	req := httptest.NewRequest(fiber.MethodPost, "/v1/users", strings.NewReader(`{"id":"user-1","name":"John Doe"}`))
+	req := httptest.NewRequest(fiber.MethodPost, "/v1/users", strings.NewReader(`{"id":" user-1 ","name":" John Doe "}`))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, _ := app.Test(req)

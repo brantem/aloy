@@ -31,6 +31,17 @@ async def validation_exception_handler(request, exc):
     elif is_missing_user_id:
         return JSONResponse(content={"error": {"code": "MISSING_USER_ID"}}, status_code=status.HTTP_400_BAD_REQUEST)
 
+    m = {}
+    for error in exc.errors():
+        match error["type"]:
+            case "missing":
+                m[error["loc"][1]] = "REQUIRED"
+            case "value_error":
+                m[error["loc"][1]] = str(error["ctx"]["error"])
+
+    if len(m) > 0:
+        return JSONResponse(content={"error": m}, status_code=status.HTTP_400_BAD_REQUEST)
+
     return await request_validation_exception_handler(request, exc)
 
 

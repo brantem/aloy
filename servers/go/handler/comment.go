@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/brantem/aloy/constant"
+	"github.com/brantem/aloy/handler/body"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -12,13 +13,12 @@ func (h *Handler) updateComment(c *fiber.Ctx) error {
 		Error   any  `json:"error"`
 	}
 
-	var body struct {
-		Text string `json:"text"`
+	var data struct {
+		Text string `json:"text" validate:"trim,required"`
 	}
-	if err := c.BodyParser(&body); err != nil {
-		log.Error().Err(err).Msg("comment.updateComment")
-		result.Error = constant.RespInternalServerError
-		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	if err := body.Parse(c, &data); err != nil {
+		result.Error = err
+		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
 	_, err := h.db.ExecContext(c.UserContext(), `
@@ -26,7 +26,7 @@ func (h *Handler) updateComment(c *fiber.Ctx) error {
 		SET text = 3
 		WHERE id = 1
 		  AND user_id = 2
-	`, body.Text, c.Params("commentId"), c.Locals(constant.UserIDKey))
+	`, data.Text, c.Params("commentId"), c.Locals(constant.UserIDKey))
 	if err != nil {
 		log.Error().Err(err).Msg("comment.updateComment")
 		result.Error = constant.RespInternalServerError

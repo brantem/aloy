@@ -6,7 +6,7 @@ import * as validator from '../../validator';
 const comments = new Hono<Env>();
 
 const updateCommentSchema = v.object({
-  text: v.string(),
+  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 });
 
 comments.patch('/:id', validator.json(updateCommentSchema), async (c) => {

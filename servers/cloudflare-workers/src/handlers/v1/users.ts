@@ -6,8 +6,8 @@ import * as validator from '../../validator';
 const users = new Hono<Env>();
 
 const createUserSchema = v.object({
-  id: v.string(),
-  name: v.string(),
+  id: v.pipe(v.string(), v.trim(), v.nonEmpty()),
+  name: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 });
 
 users.post('/', validator.json(createUserSchema), async (c) => {

@@ -2,9 +2,11 @@ package handler
 
 import (
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/brantem/aloy/constant"
+	"github.com/brantem/aloy/handler/body"
 	"github.com/brantem/aloy/model"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
@@ -132,20 +134,19 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 
 	userID := c.Locals(constant.UserIDKey)
 
-	var body struct {
-		Path  string  `json:"_path"`
-		Path2 string  `json:"path"`
-		W     float64 `json:"w"`
-		X     float64 `json:"_x"`
-		X2    float64 `json:"x"`
-		Y     float64 `json:"_y"`
-		Y2    float64 `json:"y"`
-		Text  string  `json:"text"`
+	var data struct {
+		Path  string  `json:"_path" validate:"trim,required"`
+		Path2 string  `json:"path" validate:"trim,required"`
+		W     float64 `json:"w" validate:"number,required"`
+		X     float64 `json:"_x" validate:"number,required"`
+		X2    float64 `json:"x" validate:"number,required"`
+		Y     float64 `json:"_y" validate:"number,required"`
+		Y2    float64 `json:"y" validate:"number,required"`
+		Text  string  `json:"text" validate:"trim,required"`
 	}
-	if err := c.BodyParser(&body); err != nil {
-		log.Error().Err(err).Msg("pin.createPin")
-		result.Error = constant.RespInternalServerError
-		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	if err := body.Parse(c, &data); err != nil {
+		result.Error = err
+		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
 	tx := h.db.MustBeginTx(c.UserContext(), nil)
@@ -155,7 +156,7 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 		INSERT INTO pins (app_id, user_id, _path, path, w, _x, x, _y, y)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
-	`, c.Locals(constant.AppIDKey), userID, body.Path, body.Path2, body.W, body.X, body.X2, body.Y, body.Y2).Scan(&pin.ID)
+	`, c.Locals(constant.AppIDKey), userID, data.Path, data.Path2, data.W, data.X, data.X2, data.Y, data.Y2).Scan(&pin.ID)
 	if err != nil {
 		tx.Rollback()
 		log.Error().Err(err).Msg("pin.createPin")
@@ -166,7 +167,7 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 	_, err = tx.ExecContext(c.UserContext(), `
 		INSERT INTO comments (pin_id, user_id, text)
 		VALUES (?, ?, ?)
-	`, pin.ID, userID, body.Text)
+	`, pin.ID, userID, data.Text)
 	if err != nil {
 		tx.Rollback()
 		log.Error().Err(err).Msg("pin.createPin")
@@ -186,7 +187,7 @@ func (h *Handler) completePin(c *fiber.Ctx) error {
 		Error   any  `json:"error"`
 	}
 
-	if v := string(c.BodyRaw()); v == "1" {
+	if v := strings.TrimSpace(string(c.BodyRaw())); v == "1" {
 		_, err := h.db.ExecContext(c.UserContext(), `
 			UPDATE pins
 			SET completed_at = CURRENT_TIMESTAMP, completed_by_id = ?
@@ -297,13 +298,12 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 		Error   any      `json:"error"`
 	}
 
-	var body struct {
-		Text string `json:"text"`
+	var data struct {
+		Text string `json:"text" validate:"trim,required"`
 	}
-	if err := c.BodyParser(&body); err != nil {
-		log.Error().Err(err).Msg("pin.createComment")
-		result.Error = constant.RespInternalServerError
-		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	if err := body.Parse(c, &data); err != nil {
+		result.Error = err
+		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
 	var comment Comment
@@ -311,7 +311,7 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 		INSERT INTO comments (pin_id, user_id, text)
 		VALUES (?, ?, ?)
 		RETURNING id
-	`, c.Params("pinId"), c.Locals(constant.UserIDKey), body.Text).Scan(&comment.ID)
+	`, c.Params("pinId"), c.Locals(constant.UserIDKey), data.Text).Scan(&comment.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("pin.createComment")
 		result.Error = constant.RespInternalServerError

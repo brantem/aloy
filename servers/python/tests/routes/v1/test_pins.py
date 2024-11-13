@@ -1,8 +1,14 @@
 import sqlite3
 
+from fastapi import status
 from fastapi.testclient import TestClient
 
 from tests.helpers import partial_match
+
+headers = {
+    "Aloy-App-ID": "test",
+    "Aloy-User-ID": "1",
+}
 
 
 def prepare(db: sqlite3.Connection):
@@ -22,8 +28,8 @@ def prepare(db: sqlite3.Connection):
 def test_get_pins(client: TestClient, db: sqlite3.Connection):
     prepare(db)
 
-    response = client.get("/v1/pins?me=1&_path=/", headers={"Aloy-App-ID": "test", "Aloy-User-ID": "1"})
-    assert response.status_code == 200
+    response = client.get("/v1/pins?me=1&_path=/", headers=headers)
+    assert response.status_code == status.HTTP_200_OK
     assert response.headers["X-Total-Count"] == "1"
     assert partial_match(
         {
@@ -57,8 +63,8 @@ def test_get_pins(client: TestClient, db: sqlite3.Connection):
 def test_get_pins_empty(client: TestClient, db: sqlite3.Connection):
     prepare(db)
 
-    response = client.get("/v1/pins?me=1&_path=/b", headers={"Aloy-App-ID": "test", "Aloy-User-ID": "1"})
-    assert response.status_code == 200
+    response = client.get("/v1/pins?me=1&_path=/b", headers=headers)
+    assert response.status_code == status.HTTP_200_OK
     assert response.headers["X-Total-Count"] == "0"
     assert response.json() == {"nodes": [], "error": None}
 
@@ -70,19 +76,19 @@ def test_create_pin(client: TestClient, db: sqlite3.Connection):
 
     response = client.post(
         "/v1/pins",
-        headers={"Aloy-App-ID": "test", "Aloy-User-ID": "1"},
+        headers=headers,
         json={
-            "_path": "/",
-            "path": "body",
-            "w": 1,
+            "_path": " / ",
+            "path": " body ",
+            "w": "1",  # str -> float
             "_x": 0,
             "x": 0,
             "_y": 0,
             "y": 0,
-            "text": "a",
+            "text": " a ",
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert partial_match({"pin": {"id": 1}, "error": None}, response.json())
 
     pins = db.execute("SELECT * FROM pins").fetchall()
@@ -128,8 +134,8 @@ def test_complete_pin(client: TestClient, db: sqlite3.Connection):
 
     # complete
     headers = {"Content-Type": "text/plain", "Aloy-App-ID": "test", "Aloy-User-ID": "1"}
-    response = client.post("/v1/pins/1/complete", headers=headers, content=b"1")
-    assert response.status_code == 200
+    response = client.post("/v1/pins/1/complete", headers=headers, content=b" 1 ")
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"success": True, "error": None}
 
     pin = db.execute("SELECT completed_at, completed_by_id FROM pins WHERE id = 1").fetchone()
@@ -138,8 +144,8 @@ def test_complete_pin(client: TestClient, db: sqlite3.Connection):
 
     # uncomplete
     headers = {"Content-Type": "text/plain", "Aloy-App-ID": "test", "Aloy-User-ID": "1"}
-    response = client.post("/v1/pins/1/complete", headers=headers, content=b"0")
-    assert response.status_code == 200
+    response = client.post("/v1/pins/1/complete", headers=headers, content=b" a ")
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"success": True, "error": None}
 
     pin = db.execute("SELECT completed_at, completed_by_id FROM pins WHERE id = 1").fetchone()
@@ -151,8 +157,8 @@ def test_delete_pin(client: TestClient, db: sqlite3.Connection):
 
     assert [pin["id"] for pin in db.execute("SELECT id FROM pins").fetchall()] == [1, 2]
 
-    response = client.delete("/v1/pins/1", headers={"Aloy-App-ID": "test", "Aloy-User-ID": "1"})
-    assert response.status_code == 200
+    response = client.delete("/v1/pins/1", headers=headers)
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"success": True, "error": None}
 
     assert [pin["id"] for pin in db.execute("SELECT id FROM pins").fetchall()] == [2]
@@ -161,15 +167,15 @@ def test_delete_pin(client: TestClient, db: sqlite3.Connection):
 def test_get_pin_comments(client: TestClient, db: sqlite3.Connection):
     prepare(db)
 
-    response = client.get("/v1/pins/1/comments", headers={"Aloy-App-ID": "test", "Aloy-User-ID": "1"})
-    assert response.status_code == 200
+    response = client.get("/v1/pins/1/comments", headers=headers)
+    assert response.status_code == status.HTTP_200_OK
     assert response.headers["X-Total-Count"] == "0"
     assert response.json() == {"nodes": [], "error": None}
 
     db.execute("INSERT INTO comments VALUES (3, 1, 1, 'c', CURRENT_TIME, CURRENT_TIME);")
 
-    response = client.get("/v1/pins/1/comments", headers={"Aloy-App-ID": "test", "Aloy-User-ID": "1"})
-    assert response.status_code == 200
+    response = client.get("/v1/pins/1/comments", headers=headers)
+    assert response.status_code == status.HTTP_200_OK
     assert response.headers["X-Total-Count"] == "1"
     assert partial_match(
         {
@@ -194,12 +200,8 @@ def test_create_comment(client: TestClient, db: sqlite3.Connection):
 
     assert db.execute("SELECT id FROM comments WHERE id = 3").fetchone() is None
 
-    response = client.post(
-        "/v1/pins/1/comments",
-        headers={"Aloy-App-ID": "test", "Aloy-User-ID": "1"},
-        json={"text": "c"},
-    )
-    assert response.status_code == 200
+    response = client.post("/v1/pins/1/comments", headers=headers, json={"text": " c "})
+    assert response.status_code == status.HTTP_200_OK
     assert partial_match({"comment": {"id": 3}, "error": None}, response.json())
 
     comment = db.execute("SELECT * FROM comments WHERE id = 3").fetchone()

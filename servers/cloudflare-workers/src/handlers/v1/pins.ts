@@ -35,14 +35,14 @@ pins.get('/', async (c) => {
 });
 
 const createPinSchema = v.object({
-  _path: v.string(),
-  path: v.string(),
+  _path: v.pipe(v.string(), v.trim(), v.nonEmpty()),
+  path: v.pipe(v.string(), v.trim(), v.nonEmpty()),
   w: v.number(),
   _x: v.number(),
   x: v.number(),
   _y: v.number(),
   y: v.number(),
-  text: v.string(),
+  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 });
 
 pins.post('/', validator.json(createPinSchema), async (c) => {
@@ -68,7 +68,7 @@ pins.post('/', validator.json(createPinSchema), async (c) => {
 });
 
 pins.post('/:id/complete', async (c) => {
-  if ((await c.req.text()) === '1') {
+  if ((await c.req.text()).trim() === '1') {
     const stmt = c.env.DB.prepare(`
       UPDATE pins
       SET completed_at = CURRENT_TIMESTAMP, completed_by_id = ?2
@@ -111,7 +111,7 @@ pins.get('/:id/comments', async (c) => {
 });
 
 const createCommentSchema = v.object({
-  text: v.string(),
+  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 });
 
 pins.post('/:id/comments', validator.json(createCommentSchema), async (c) => {
