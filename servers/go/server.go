@@ -56,15 +56,8 @@ func main() {
 
 	app.Use(pprof.New())
 
-	var allowOrigins string
-	if v := os.Getenv("ALLOW_ORIGINS"); v != "" {
-		allowOrigins = v
-	} else {
-		allowOrigins = "*"
-	}
-
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:  allowOrigins,
+		AllowOrigins:  util.Getenv("ALLOW_ORIGINS", "*"),
 		AllowHeaders:  "Content-Type, Aloy-App-ID, Aloy-User-ID",
 		ExposeHeaders: "X-Total-Count",
 	}))
