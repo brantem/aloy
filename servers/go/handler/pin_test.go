@@ -18,7 +18,7 @@ func Test_pins(t *testing.T) {
 
 	t.Run("empty", func(t *testing.T) {
 		db, mock := db.New()
-		h := New(db)
+		h := New(db, nil)
 		m := middleware.New()
 
 		mock.ExpectQuery("SELECT .+ FROM pins").
@@ -40,7 +40,7 @@ func Test_pins(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		db, mock := db.New()
-		h := New(db)
+		h := New(db, nil)
 		m := middleware.New()
 
 		mock.MatchExpectationsInOrder(false)
@@ -76,7 +76,7 @@ func Test_pins(t *testing.T) {
 
 func Test_createPin(t *testing.T) {
 	db, mock := db.New()
-	h := New(db)
+	h := New(db, nil)
 	m := middleware.New()
 
 	mock.ExpectBegin()
@@ -110,7 +110,7 @@ func Test_completePin(t *testing.T) {
 
 	t.Run("body == 1", func(t *testing.T) {
 		db, mock := db.New()
-		h := New(db)
+		h := New(db, nil)
 		m := middleware.New()
 
 		mock.ExpectExec("UPDATE pins SET completed_at = CURRENT_TIMESTAMP").
@@ -131,7 +131,7 @@ func Test_completePin(t *testing.T) {
 
 	t.Run("body != 1", func(t *testing.T) {
 		db, mock := db.New()
-		h := New(db)
+		h := New(db, nil)
 		m := middleware.New()
 
 		mock.ExpectExec("UPDATE pins SET completed_at = NULL").
@@ -153,7 +153,7 @@ func Test_completePin(t *testing.T) {
 
 func Test_deletePin(t *testing.T) {
 	db, mock := db.New()
-	h := New(db)
+	h := New(db, nil)
 	m := middleware.New()
 
 	mock.ExpectExec("DELETE FROM pins").
@@ -177,7 +177,7 @@ func Test_pinComments(t *testing.T) {
 
 	t.Run("empty", func(t *testing.T) {
 		db, mock := db.New()
-		h := New(db)
+		h := New(db, nil)
 		m := middleware.New()
 
 		mock.ExpectQuery("SELECT .+ FROM comments").
@@ -199,7 +199,7 @@ func Test_pinComments(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		db, mock := db.New()
-		h := New(db)
+		h := New(db, nil)
 		m := middleware.New()
 
 		mock.MatchExpectationsInOrder(false)
@@ -231,7 +231,7 @@ func Test_pinComments(t *testing.T) {
 
 func Test_createComment(t *testing.T) {
 	db, mock := db.New()
-	h := New(db)
+	h := New(db, nil)
 	m := middleware.New()
 
 	mock.ExpectQuery("INSERT INTO comments").

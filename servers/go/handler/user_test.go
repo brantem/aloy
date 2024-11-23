@@ -18,7 +18,7 @@ func Test_getUsers(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("empty", func(t *testing.T) {
-		h := New(nil)
+		h := New(nil, nil)
 
 		m, err := h.getUsers(context.TODO(), []int{})
 		assert.Nil(m)
@@ -27,7 +27,7 @@ func Test_getUsers(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		db, mock := db.New()
-		h := New(db)
+		h := New(db, nil)
 
 		mock.ExpectQuery("SELECT .+ FROM users").
 			WithArgs(1).
@@ -41,7 +41,7 @@ func Test_getUsers(t *testing.T) {
 
 func Test_createUser(t *testing.T) {
 	db, mock := db.New()
-	h := New(db)
+	h := New(db, nil)
 	m := middleware.New()
 
 	mock.ExpectQuery("INSERT INTO users").

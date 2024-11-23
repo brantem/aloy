@@ -10,6 +10,8 @@ import (
 	"github.com/brantem/aloy/db"
 	"github.com/brantem/aloy/handler"
 	"github.com/brantem/aloy/middleware"
+	"github.com/brantem/aloy/storage"
+	"github.com/brantem/aloy/util"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -39,6 +41,7 @@ func main() {
 	}
 
 	db := db.New()
+	storage := storage.New(ctx)
 
 	app := fiber.New(fiber.Config{
 		AppName:               constant.AppID,
@@ -71,7 +74,7 @@ func main() {
 	}))
 	app.Use(logger.New())
 
-	h := handler.New(db)
+	h := handler.New(db, storage)
 	h.Register(app, middleware.New())
 
 	go func() {

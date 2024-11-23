@@ -2,16 +2,18 @@ package handler
 
 import (
 	"github.com/brantem/aloy/middleware"
+	"github.com/brantem/aloy/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
 )
 
 type Handler struct {
-	db *sqlx.DB
+	db      *sqlx.DB
+	storage storage.StorageInterface
 }
 
-func New(db *sqlx.DB) *Handler {
-	return &Handler{db}
+func New(db *sqlx.DB, storage storage.StorageInterface) *Handler {
+	return &Handler{db, storage}
 }
 
 func (h *Handler) Register(r *fiber.App, m middleware.MiddlewareInterface) {

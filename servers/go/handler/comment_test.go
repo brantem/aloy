@@ -15,7 +15,7 @@ import (
 
 func Test_updateComment(t *testing.T) {
 	db, mock := db.New()
-	h := New(db)
+	h := New(db, nil)
 	m := middleware.New()
 
 	mock.ExpectExec("UPDATE comments").
@@ -37,7 +37,7 @@ func Test_updateComment(t *testing.T) {
 
 func Test_deleteComment(t *testing.T) {
 	db, mock := db.New()
-	h := New(db)
+	h := New(db, nil)
 	m := middleware.New()
 
 	mock.ExpectExec("DELETE FROM comments").
