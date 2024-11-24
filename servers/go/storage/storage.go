@@ -49,6 +49,7 @@ type UploadOpts struct {
 	ContentType        string
 	CacheControl       string
 	ContentDisposition string
+	ContentLength      int64
 }
 
 func (s *Storage) Upload(ctx context.Context, opts *UploadOpts) error {
@@ -57,11 +58,12 @@ func (s *Storage) Upload(ctx context.Context, opts *UploadOpts) error {
 	}
 
 	input := &s3.PutObjectInput{
-		Bucket:       aws.String(s.bucket),
-		Key:          aws.String(opts.Key),
-		Body:         opts.Body,
-		ContentType:  aws.String(opts.ContentType),
-		CacheControl: aws.String(opts.CacheControl),
+		Bucket:        aws.String(s.bucket),
+		Key:           aws.String(opts.Key),
+		Body:          opts.Body,
+		ContentType:   aws.String(opts.ContentType),
+		CacheControl:  aws.String(opts.CacheControl),
+		ContentLength: aws.Int64(opts.ContentLength),
 	}
 	if opts.ContentDisposition != "" {
 		input.ContentDisposition = aws.String(opts.ContentDisposition)
