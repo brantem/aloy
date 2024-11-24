@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/brantem/aloy/constant"
+	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/handler/body"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -29,7 +30,7 @@ func (h *Handler) updateComment(c *fiber.Ctx) error {
 	`, data.Text, c.Params("commentId"), c.Locals(constant.UserIDKey))
 	if err != nil {
 		log.Error().Err(err).Msg("comment.updateComment")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 
@@ -50,7 +51,7 @@ func (h *Handler) deleteComment(c *fiber.Ctx) error {
 	`, c.Params("commentId"), c.Locals(constant.UserIDKey))
 	if err != nil {
 		log.Error().Err(err).Msg("comment.deleteComment")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 

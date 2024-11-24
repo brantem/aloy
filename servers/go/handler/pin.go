@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/brantem/aloy/constant"
+	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/handler/body"
 	"github.com/brantem/aloy/model"
 	"github.com/gofiber/fiber/v2"
@@ -38,7 +39,7 @@ func (h *Handler) pins(c *fiber.Ctx) error {
 	`, c.Locals(constant.AppIDKey), userID, userID, _path, _path)
 	if err != nil {
 		log.Error().Err(err).Msg("pin.pins")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 	defer rows.Close()
@@ -48,7 +49,7 @@ func (h *Handler) pins(c *fiber.Ctx) error {
 		var node model.Pin
 		if err := rows.StructScan(&node); err != nil {
 			log.Error().Err(err).Msg("pin.pins")
-			result.Error = constant.RespInternalServerError
+			result.Error = errs.ErrInternalServerError
 			return c.Status(fiber.StatusInternalServerError).JSON(result)
 		}
 		pinIds = append(pinIds, node.ID)
@@ -160,7 +161,7 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 	if err != nil {
 		tx.Rollback()
 		log.Error().Err(err).Msg("pin.createPin")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 
@@ -171,7 +172,7 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 	if err != nil {
 		tx.Rollback()
 		log.Error().Err(err).Msg("pin.createPin")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 
@@ -196,7 +197,7 @@ func (h *Handler) completePin(c *fiber.Ctx) error {
 		`, c.Locals(constant.UserIDKey), c.Params("pinId"))
 		if err != nil {
 			log.Error().Err(err).Msg("pin.completePin")
-			result.Error = constant.RespInternalServerError
+			result.Error = errs.ErrInternalServerError
 			return c.Status(fiber.StatusInternalServerError).JSON(result)
 		}
 	} else {
@@ -208,7 +209,7 @@ func (h *Handler) completePin(c *fiber.Ctx) error {
 		`, c.Params("pinId"))
 		if err != nil {
 			log.Error().Err(err).Msg("pin.completePin")
-			result.Error = constant.RespInternalServerError
+			result.Error = errs.ErrInternalServerError
 			return c.Status(fiber.StatusInternalServerError).JSON(result)
 		}
 	}
@@ -230,7 +231,7 @@ func (h *Handler) deletePin(c *fiber.Ctx) error {
 	`, c.Params("pinId"), c.Locals(constant.UserIDKey))
 	if err != nil {
 		log.Error().Err(err).Msg("pin.deletePin")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 
@@ -254,7 +255,7 @@ func (h *Handler) pinComments(c *fiber.Ctx) error {
 	`, c.Params("pinId"))
 	if err != nil {
 		log.Error().Err(err).Msg("pin.pinComments")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 	defer rows.Close()
@@ -264,7 +265,7 @@ func (h *Handler) pinComments(c *fiber.Ctx) error {
 		var node model.Comment
 		if err := rows.StructScan(&node); err != nil {
 			log.Error().Err(err).Msg("pin.pinComments")
-			result.Error = constant.RespInternalServerError
+			result.Error = errs.ErrInternalServerError
 			return c.Status(fiber.StatusInternalServerError).JSON(result)
 		}
 		userIds = append(userIds, node.UserID)
@@ -314,7 +315,7 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 	`, c.Params("pinId"), c.Locals(constant.UserIDKey), data.Text).Scan(&comment.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("pin.createComment")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 	result.Comment = &comment

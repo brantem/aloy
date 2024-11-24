@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brantem/aloy/errs"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -77,8 +78,8 @@ func TestValidateStruct(t *testing.T) {
 		data := Data{}
 		json.Unmarshal([]byte(`{}`), &data)
 
-		errs := ValidateStruct(data)
-		assert.Equal(map[string]string{"title": "INVALID"}, errs)
+		err := ValidateStruct(data)
+		assert.Equal(errs.MapErrors{"title": errs.ErrInvalid}, err)
 	})
 
 	t.Run("omit tag", func(t *testing.T) {
@@ -87,21 +88,21 @@ func TestValidateStruct(t *testing.T) {
 		}
 		json.Unmarshal([]byte(`{}`), &data)
 
-		errs := ValidateStruct(data)
-		assert.Equal(map[string]string{"Title": "INVALID"}, errs)
+		err := ValidateStruct(data)
+		assert.Equal(errs.MapErrors{"Title": errs.ErrInvalid}, err)
 	})
 
 	t.Run("success", func(t *testing.T) {
 		data := Data{}
 		json.Unmarshal([]byte(`{"title":" abc "}`), &data)
 
-		errs := ValidateStruct(data)
-		assert.Nil(errs)
+		err := ValidateStruct(data)
+		assert.Nil(err)
 		assert.Equal("abc", *data.Title)
 	})
 }
 
 func TestValidateVar(t *testing.T) {
-	assert.Equal(t, "INVALID", ValidateVar("", "trim,required"))
+	assert.Equal(t, errs.ErrInvalid, ValidateVar("", "trim,required"))
 	assert.Empty(t, ValidateVar(" a ", "trim,required"))
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/brantem/aloy/errs"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -40,22 +41,22 @@ func initValidate() {
 	})
 }
 
-func Parse(c *fiber.Ctx, out any) map[string]string {
+func Parse(c *fiber.Ctx, out any) error {
 	if err := c.BodyParser(out); err != nil {
 		log.Error().Err(err).Msg("body.Parse")
-		return nil
+		return errs.ErrInternalServerError
 	}
 
 	return ValidateStruct(out)
 }
 
-func ValidateStruct(s any) map[string]string {
+func ValidateStruct(s any) error {
 	once.Do(initValidate)
 
 	if err := validate.Struct(s); err != nil {
-		m := map[string]string{}
+		m := make(errs.MapErrors)
 		for _, err := range err.(validator.ValidationErrors) {
-			m[err.Field()] = "INVALID"
+			m[err.Field()] = errs.ErrInvalid
 		}
 		log.Error().Err(err).Msg("body.ValidateStruct")
 		return m
@@ -64,13 +65,13 @@ func ValidateStruct(s any) map[string]string {
 	return nil
 }
 
-func ValidateVar(field any, tag string) string {
+func ValidateVar(field any, tag string) error {
 	once.Do(initValidate)
 
 	if err := validate.Var(field, tag); err != nil {
 		log.Error().Err(err).Msg("body.ValidateVar")
-		return "INVALID"
+		return errs.ErrInvalid
 	}
 
-	return ""
+	return nil
 }

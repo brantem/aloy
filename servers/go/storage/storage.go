@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/brantem/aloy/constant"
+	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/util"
 	"github.com/rs/zerolog/log"
 )
@@ -71,7 +72,7 @@ func (s *Storage) Upload(ctx context.Context, opts *UploadOpts) error {
 
 	if _, err := s.client.PutObject(ctx, input); err != nil {
 		log.Error().Err(err).Msg("storage.Upload")
-		return constant.ErrInternalServerError
+		return errs.ErrInternalServerError
 	}
 
 	return nil
