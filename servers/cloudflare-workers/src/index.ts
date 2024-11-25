@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { logger } from 'hono/logger';
+import { contextStorage } from 'hono/context-storage';
 import { cors } from 'hono/cors';
 
 import v1 from './handlers/v1';
 
 const app = new Hono<Env>();
-app.get('*', secureHeaders());
-app.use('*', logger());
+app.get(secureHeaders());
+app.use(logger());
+app.use(contextStorage());
 
 app.use('*', async (c, next) => {
   return cors({

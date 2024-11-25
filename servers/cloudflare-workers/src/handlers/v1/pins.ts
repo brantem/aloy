@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { getContext } from 'hono/context-storage';
 import * as v from 'valibot';
 
 import type { User, Pin, Comment } from '../../types';
@@ -28,7 +29,7 @@ pins.get('/', async (c) => {
     pinIds.push(pin.id);
     userIds.push(pin.user_id);
   }
-  const [users, comments] = await Promise.all([getUsers(c.env.DB, userIds), getRootComments(c.env.DB, pinIds)]);
+  const [users, comments] = await Promise.all([getUsers(userIds), getRootComments(pinIds)]);
 
   const nodes = results.map(({ user_id, ...pin }) => ({ ...pin, user: users[user_id], comment: comments[pin.id] }));
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
@@ -104,7 +105,7 @@ pins.get('/:id/comments', async (c) => {
   if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
   const userIds = [...new Set(results.map((comment) => comment.user_id))];
-  const users = await getUsers(c.env.DB, userIds);
+  const users = await getUsers(userIds);
 
   const nodes = results.map(({ user_id, ...comment }) => ({ ...comment, user: users[user_id] }));
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
@@ -123,8 +124,8 @@ pins.post('/:id/comments', validator.json(createCommentSchema), async (c) => {
 
 export default pins;
 
-const getUsers = async (d1: D1Database, ids: string[]) => {
-  const stmt = d1.prepare(`
+const getUsers = async (ids: string[]) => {
+  const stmt = getContext<Env>().env.DB.prepare(`
     SELECT id, name
     FROM users
     WHERE id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
@@ -135,10 +136,10 @@ const getUsers = async (d1: D1Database, ids: string[]) => {
   );
 };
 
-const getRootComments = async (d1: D1Database, ids: number[]) => {
+const getRootComments = async (ids: number[]) => {
   type Row = Pick<Comment, 'id' | 'pin_id' | 'text' | 'created_at' | 'updated_at'>;
 
-  const stmt = d1.prepare(`
+  const stmt = getContext<Env>().env.DB.prepare(`
     SELECT id, pin_id, text, created_at, updated_at
     FROM comments
     WHERE pin_id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
