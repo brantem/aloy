@@ -62,6 +62,8 @@ func (h *Handler) createUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
+	// FIXME: This upsert keeps incrementing the id sequence even when nothing changes
+
 	var user User
 	err := h.db.QueryRowContext(c.UserContext(), `
 		INSERT INTO users (_id, app_id, name)
