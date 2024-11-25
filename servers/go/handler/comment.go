@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"strings"
 
 	"github.com/brantem/aloy/constant"
 	"github.com/brantem/aloy/errs"
@@ -83,17 +84,40 @@ func (h *Handler) deleteComment(c *fiber.Ctx) error {
 		Error   any  `json:"error"`
 	}
 
-	// TODO: delete all attachments
+	commentID, _ := c.ParamsInt("commentId")
 
-	_, err := h.db.ExecContext(c.UserContext(), `
-		DELETE FROM comments
-		WHERE id = ?
-		  AND user_id = ?
-	`, c.Params("commentId"), c.Locals(constant.UserIDKey))
+	rows, err := h.db.QueryContext(c.UserContext(), `SELECT url FROM attachments WHERE id = ?`, commentID)
 	if err != nil {
 		log.Error().Err(err).Msg("comment.deleteComment")
 		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	}
+	defer rows.Close()
+
+	keys := []string{}
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			log.Error().Err(err).Msg("comment.deleteComment")
+			result.Error = errs.ErrInternalServerError
+			return c.Status(fiber.StatusInternalServerError).JSON(result)
+		}
+		keys = append(keys, strings.TrimPrefix(url, h.config.assetsBaseURL+"/"))
+	}
+
+	_, err = h.db.ExecContext(c.UserContext(), `
+		DELETE FROM comments
+		WHERE id = ?
+		  AND user_id = ?
+	`, commentID, c.Locals(constant.UserIDKey))
+	if err != nil {
+		log.Error().Err(err).Msg("comment.deleteComment")
+		result.Error = errs.ErrInternalServerError
+		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	}
+
+	if len(keys) > 0 {
+		h.storage.DeleteMultiple(c.UserContext(), keys)
 	}
 
 	result.Success = true

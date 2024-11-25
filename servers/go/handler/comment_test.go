@@ -10,6 +10,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/brantem/aloy/testutil/db"
 	"github.com/brantem/aloy/testutil/middleware"
+	"github.com/brantem/aloy/testutil/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,12 +63,19 @@ func Test_updateComment(t *testing.T) {
 }
 
 func Test_deleteComment(t *testing.T) {
+	t.Setenv("ASSETS_BASE_URL", "https://assets.aloy.com")
+
 	db, mock := db.New()
-	h := New(db, nil)
+	storage := storage.New()
+	h := New(db, storage)
 	m := middleware.New()
 
+	mock.ExpectQuery("SELECT url FROM attachments").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"url"}).AddRow("https://assets.aloy.com/attachments/a.png"))
+
 	mock.ExpectExec("DELETE FROM comments").
-		WithArgs("1", m.UserIDValue).
+		WithArgs(1, m.UserIDValue).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	app := fiber.New()
@@ -77,6 +85,7 @@ func Test_deleteComment(t *testing.T) {
 
 	resp, _ := app.Test(req)
 	assert.Nil(t, mock.ExpectationsWereMet())
+	assert.Equal(t, [][]string{{"attachments/a.png"}}, storage.DeleteMultipleKeys)
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
 	body, _ := io.ReadAll(resp.Body)
 	assert.Equal(t, `{"success":true,"error":null}`, string(body))

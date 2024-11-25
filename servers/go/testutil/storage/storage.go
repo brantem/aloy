@@ -11,6 +11,10 @@ type Storage struct {
 	UploadN     int
 	UploadOpts  []*storage.UploadOpts
 	UploadError []error
+
+	DeleteMultipleN     int
+	DeleteMultipleKeys  [][]string
+	DeleteMultipleError []error
 }
 
 func New() *Storage {
@@ -24,5 +28,15 @@ func (s *Storage) Upload(ctx context.Context, opts *storage.UploadOpts) error {
 		err = s.UploadError[s.UploadN]
 	}
 	s.UploadN += 1
+	return err
+}
+
+func (s *Storage) DeleteMultiple(ctx context.Context, keys []string) error {
+	s.DeleteMultipleKeys = append(s.DeleteMultipleKeys, keys)
+	var err error
+	if len(s.DeleteMultipleError) != 0 {
+		err = s.DeleteMultipleError[s.DeleteMultipleN]
+	}
+	s.DeleteMultipleN += 1
 	return err
 }

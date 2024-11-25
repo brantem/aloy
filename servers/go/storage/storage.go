@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/brantem/aloy/constant"
 	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/util"
@@ -17,6 +18,7 @@ import (
 
 type StorageInterface interface {
 	Upload(ctx context.Context, opts *UploadOpts) error
+	DeleteMultiple(ctx context.Context, keys []string) error
 }
 
 type Storage struct {
@@ -72,6 +74,30 @@ func (s *Storage) Upload(ctx context.Context, opts *UploadOpts) error {
 
 	if _, err := s.client.PutObject(ctx, input); err != nil {
 		log.Error().Err(err).Msg("storage.Upload")
+		return errs.ErrInternalServerError
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteMultiple(ctx context.Context, keys []string) error {
+	objects := make([]types.ObjectIdentifier, len(keys))
+	for i, key := range keys {
+		objects[i] = types.ObjectIdentifier{
+			Key: aws.String(key),
+		}
+	}
+
+	input := &s3.DeleteObjectsInput{
+		Bucket: aws.String(s.bucket),
+		Delete: &types.Delete{
+			Objects: objects,
+			Quiet:   aws.Bool(true),
+		},
+	}
+
+	if _, err := s.client.DeleteObjects(ctx, input); err != nil {
+		log.Error().Err(err).Msg("storage.DeleteMultiple")
 		return errs.ErrInternalServerError
 	}
 
