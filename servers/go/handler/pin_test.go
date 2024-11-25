@@ -9,11 +9,11 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http/httptest"
-	"net/textproto"
 	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/brantem/aloy/testutil"
 	"github.com/brantem/aloy/testutil/db"
 	"github.com/brantem/aloy/testutil/middleware"
 	"github.com/brantem/aloy/testutil/storage"
@@ -88,8 +88,12 @@ func Test_pins(t *testing.T) {
 }
 
 func Test_createPin(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	hash := base64.StdEncoding.EncodeToString(thumbhash.EncodeImage(img))
+
 	db, mock := db.New()
-	h := New(db, nil)
+	storage := storage.New()
+	h := New(db, storage)
 	m := middleware.New()
 
 	mock.ExpectBegin()
@@ -99,8 +103,13 @@ func Test_createPin(t *testing.T) {
 		WithArgs(m.AppIDValue, m.UserIDValue, "/", "body", float64(1080), float64(100), float64(100), float64(100), float64(100)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(pinID))
 
-	mock.ExpectExec("INSERT INTO comments").
+	commentID := int64(1)
+	mock.ExpectQuery("INSERT INTO comments").
 		WithArgs(pinID, m.UserIDValue, "Test").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(commentID))
+
+	mock.ExpectExec("INSERT INTO attachments").
+		WithArgs(commentID, sqlmock.AnyArg(), fmt.Sprintf(`{"hash":"%s","type":"image/png"}`, hash)).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mock.ExpectCommit()
@@ -108,8 +117,31 @@ func Test_createPin(t *testing.T) {
 	app := fiber.New()
 	h.Register(app, m)
 
-	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins", strings.NewReader(`{"_path":" / ","path":" body ","w":1080,"_x":100,"x":100,"_y":100,"y":100,"text":" Test "}`))
-	req.Header.Set("Content-Type", "application/json")
+	buf := &bytes.Buffer{}
+	writer := multipart.NewWriter(buf)
+
+	data := map[string]string{
+		"_path": " / ",
+		"path":  " body ",
+		"w":     "1080",
+		"_x":    "100",
+		"x":     "100",
+		"_y":    "100",
+		"y":     "100",
+		"text":  " Test ",
+	}
+	for k, v := range data {
+		field, _ := writer.CreateFormField(k)
+		field.Write([]byte(v))
+	}
+
+	attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+	png.Encode(attachment1, img)
+
+	writer.Close()
+
+	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins", buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, _ := app.Test(req)
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -276,12 +308,8 @@ func Test_createComment(t *testing.T) {
 	text, _ := writer.CreateFormField("text")
 	text.Write([]byte(" Test "))
 
-	header := make(textproto.MIMEHeader)
-	header.Set("Content-Disposition", `form-data; name="attachments.1"; filename="a.png"`)
-	header.Set("Content-Type", "image/png")
-
-	part, _ := writer.CreatePart(header)
-	png.Encode(part, img)
+	attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+	png.Encode(attachment1, img)
 
 	writer.Close()
 

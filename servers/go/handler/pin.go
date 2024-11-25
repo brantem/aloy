@@ -138,26 +138,35 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 	userID := c.Locals(constant.UserIDKey)
 
 	var data struct {
-		Path  string  `json:"_path" validate:"trim,required"`
-		Path2 string  `json:"path" validate:"trim,required"`
-		W     float64 `json:"w" validate:"number,required"`
-		X     float64 `json:"_x" validate:"number,required"`
-		X2    float64 `json:"x" validate:"number,required"`
-		Y     float64 `json:"_y" validate:"number,required"`
-		Y2    float64 `json:"y" validate:"number,required"`
-		Text  string  `json:"text" validate:"trim,required"`
+		Path  string  `form:"_path" validate:"trim,required"`
+		Path2 string  `form:"path" validate:"trim,required"`
+		W     float64 `form:"w" validate:"number,required"`
+		X     float64 `form:"_x" validate:"number,required"`
+		X2    float64 `form:"x" validate:"number,required"`
+		Y     float64 `form:"_y" validate:"number,required"`
+		Y2    float64 `form:"y" validate:"number,required"`
+		Text  string  `form:"text" validate:"trim,required"`
 	}
 	if err := body.Parse(c, &data); err != nil {
 		result.Error = err
 		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
-	// TODO: upload attachments
+	attachments, err := h.uploadAttachments(c)
+	if err != nil {
+		result.Error = err
+		if err == errs.ErrInternalServerError {
+			c.Status(fiber.StatusInternalServerError)
+		} else {
+			c.Status(fiber.StatusBadRequest)
+		}
+		return c.JSON(result)
+	}
 
 	tx := h.db.MustBeginTx(c.UserContext(), nil)
 
 	var pin Pin
-	err := tx.QueryRowContext(c.UserContext(), `
+	err = tx.QueryRowContext(c.UserContext(), `
 		INSERT INTO pins (app_id, user_id, _path, path, w, _x, x, _y, y)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
@@ -169,11 +178,26 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 
-	_, err = tx.ExecContext(c.UserContext(), `
+	var commentID int
+	err = tx.QueryRowContext(c.UserContext(), `
 		INSERT INTO comments (pin_id, user_id, text)
 		VALUES (?, ?, ?)
-	`, pin.ID, userID, data.Text)
+		RETURNING id
+	`, pin.ID, userID, data.Text).Scan(&commentID)
 	if err != nil {
+		tx.Rollback()
+		log.Error().Err(err).Msg("pin.createPin")
+		result.Error = errs.ErrInternalServerError
+		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	}
+
+	qb := sq.Insert("attachments").Columns("comment_id", "url", "data")
+	for _, attachment := range attachments {
+		buf, _ := json.Marshal(attachment.Data)
+		qb = qb.Values(commentID, attachment.URL, string(buf))
+	}
+
+	if _, err = qb.PlaceholderFormat(sq.Dollar).RunWith(tx).Exec(); err != nil {
 		tx.Rollback()
 		log.Error().Err(err).Msg("pin.createPin")
 		result.Error = errs.ErrInternalServerError
@@ -332,7 +356,7 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 	}
 
 	var data struct {
-		Text string `json:"text" validate:"trim,required"`
+		Text string `form:"text" validate:"trim,required"`
 	}
 	if err := body.Parse(c, &data); err != nil {
 		result.Error = err

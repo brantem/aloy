@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"image"
 	"image/png"
-	"io"
 	"mime/multipart"
 	"net/http/httptest"
-	"net/textproto"
 	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/brantem/aloy/errs"
+	"github.com/brantem/aloy/testutil"
 	"github.com/brantem/aloy/testutil/db"
 	"github.com/brantem/aloy/testutil/storage"
 	"github.com/galdor/go-thumbhash"
@@ -35,15 +34,6 @@ func Test_uploadAttachments(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	hash := base64.StdEncoding.EncodeToString(thumbhash.EncodeImage(img))
 
-	createPart := func(writer *multipart.Writer, fieldname, filename string, contentType string) io.Writer {
-		header := make(textproto.MIMEHeader)
-		header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, fieldname, filename))
-		header.Set("Content-Type", contentType)
-
-		part, _ := writer.CreatePart(header)
-		return part
-	}
-
 	t.Run("ignore", func(t *testing.T) {
 		storage := storage.New()
 		h := New(nil, storage)
@@ -59,8 +49,8 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		part := createPart(writer, "something", "a.png", "image/png")
-		png.Encode(part, img)
+		something := testutil.CreateFormFile(writer, "something", "a.png", "image/png")
+		png.Encode(something, img)
 
 		writer.Close()
 
@@ -85,11 +75,11 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		part1 := createPart(writer, "attachments.1", "a.png", "image/png")
-		png.Encode(part1, img)
+		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+		png.Encode(attachment1, img)
 
-		part2 := createPart(writer, "attachments.2", "b.png", "image/png")
-		png.Encode(part2, img)
+		attachment2 := testutil.CreateFormFile(writer, "attachments.2", "b.png", "image/png")
+		png.Encode(attachment2, img)
 
 		writer.Close()
 
@@ -114,8 +104,8 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		part := createPart(writer, "attachments.1", "a.png", "image/png")
-		png.Encode(part, image.NewRGBA(image.Rect(0, 0, 100, 100)))
+		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+		png.Encode(attachment1, image.NewRGBA(image.Rect(0, 0, 100, 100)))
 
 		writer.Close()
 
@@ -140,8 +130,8 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		part := createPart(writer, "attachments.1", "a.txt", "text/plain")
-		part.Write([]byte("a"))
+		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.txt", "text/plain")
+		attachment1.Write([]byte("a"))
 
 		writer.Close()
 
@@ -172,8 +162,8 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		part := createPart(writer, "attachments.1", "a.png", "image/png")
-		png.Encode(part, img)
+		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+		png.Encode(attachment1, img)
 
 		writer.Close()
 
