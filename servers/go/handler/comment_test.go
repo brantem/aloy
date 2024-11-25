@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"io"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,31 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 )
+
+func Test_getComments(t *testing.T) {
+	assert := assert.New(t)
+
+	t.Run("empty", func(t *testing.T) {
+		h := New(nil, nil)
+
+		m, err := h.getComments(context.TODO(), []int{})
+		assert.Nil(m)
+		assert.Nil(err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		db, mock := db.New()
+		h := New(db, nil)
+
+		mock.ExpectQuery("SELECT .+ FROM comments").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+		m, err := h.getComments(context.TODO(), []int{1})
+		assert.Equal(1, m[1].ID)
+		assert.Nil(err)
+	})
+}
 
 func Test_updateComment(t *testing.T) {
 	db, mock := db.New()

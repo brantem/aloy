@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"image"
@@ -15,9 +16,11 @@ import (
 	"time"
 
 	"github.com/brantem/aloy/errs"
+	"github.com/brantem/aloy/model"
 	"github.com/brantem/aloy/storage"
 	"github.com/galdor/go-thumbhash"
 	"github.com/gofiber/fiber/v2"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	_ "golang.org/x/image/webp"
 )
@@ -109,4 +112,39 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 	}
 
 	return result, nil
+}
+
+func (h *Handler) getAttachments(ctx context.Context, commentIds []int) (map[int][]*model.Attachment, error) {
+	if len(commentIds) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(`SELECT id, comment_id, url, data FROM attachments WHERE comment_id IN (?)`, commentIds)
+	if err != nil {
+		log.Error().Err(err).Msg("attachment.getAttachments")
+		return nil, errs.ErrInternalServerError
+	}
+
+	rows, err := h.db.QueryxContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Err(err).Msg("attachment.getAttachments")
+		return nil, errs.ErrInternalServerError
+	}
+	defer rows.Close()
+
+	m := make(map[int][]*model.Attachment, len(commentIds))
+	for rows.Next() {
+		var node model.Attachment
+		if err := rows.StructScan(&node); err != nil {
+			log.Error().Err(err).Msg("attachment.getAttachments")
+			return nil, errs.ErrInternalServerError
+		}
+		m[node.CommentID] = append(m[node.CommentID], &node)
+
+		if node.RawData.Valid {
+			node.RawData.Unmarshal(&node.Data)
+		}
+	}
+
+	return m, nil
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"image"
@@ -13,7 +14,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/brantem/aloy/errs"
+	"github.com/brantem/aloy/testutil/db"
 	"github.com/brantem/aloy/testutil/storage"
 	"github.com/galdor/go-thumbhash"
 	"github.com/gofiber/fiber/v2"
@@ -181,5 +184,30 @@ func Test_uploadAttachments(t *testing.T) {
 		assert.Equal(1, storage.UploadN)
 		assert.Regexp(`attachments/\d+\.png`, storage.UploadOpts[0].Key)
 		assert.Equal("image/png", storage.UploadOpts[0].ContentType)
+	})
+}
+
+func Test_getAttachments(t *testing.T) {
+	assert := assert.New(t)
+
+	t.Run("empty", func(t *testing.T) {
+		h := New(nil, nil)
+
+		m, err := h.getAttachments(context.TODO(), []int{})
+		assert.Nil(m)
+		assert.Nil(err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		db, mock := db.New()
+		h := New(db, nil)
+
+		mock.ExpectQuery("SELECT .+ FROM attachments").
+			WithArgs(2).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "comment_id"}).AddRow(1, 2))
+
+		m, err := h.getAttachments(context.TODO(), []int{2})
+		assert.Equal(1, m[2][0].ID)
+		assert.Nil(err)
 	})
 }

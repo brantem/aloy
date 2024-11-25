@@ -12,7 +12,6 @@ import (
 	"github.com/brantem/aloy/handler/body"
 	"github.com/brantem/aloy/model"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,10 +29,17 @@ func (h *Handler) pins(c *fiber.Ctx) error {
 	_path := c.Query("_path")
 
 	rows, err := h.db.QueryxContext(c.UserContext(), `
+		WITH t AS (
+		  SELECT id, pin_id
+		  FROM comments
+		  GROUP BY pin_id
+		  HAVING MIN(created_at)
+		)
 		SELECT
-		  p.id, p.user_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
+		  p.id, p.user_id, t.id AS comment_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
 		  (SELECT COUNT(c.id)-1 FROM comments c WHERE c.pin_id = p.id) AS total_replies
 		FROM pins p
+		JOIN t ON t.pin_id = p.id
 		WHERE p.app_id = ?
 		  AND CASE WHEN ? != '' THEN p.user_id = ? ELSE TRUE END
 		  AND CASE WHEN ? != '' THEN p._path = ? ELSE TRUE END
@@ -46,7 +52,7 @@ func (h *Handler) pins(c *fiber.Ctx) error {
 	}
 	defer rows.Close()
 
-	var pinIds, userIds []int
+	var userIds, commentIds []int
 	for rows.Next() {
 		var node model.Pin
 		if err := rows.StructScan(&node); err != nil {
@@ -54,8 +60,8 @@ func (h *Handler) pins(c *fiber.Ctx) error {
 			result.Error = errs.ErrInternalServerError
 			return c.Status(fiber.StatusInternalServerError).JSON(result)
 		}
-		pinIds = append(pinIds, node.ID)
 		userIds = append(userIds, node.UserID)
+		commentIds = append(commentIds, node.CommentID)
 		result.Nodes = append(result.Nodes, &node)
 	}
 	c.Set("X-Total-Count", strconv.Itoa(len(result.Nodes)))
@@ -64,63 +70,57 @@ func (h *Handler) pins(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(result)
 	}
 
+	comments := make(map[int]*model.Comment, len(commentIds))
+	attachments := make(map[int][]*model.Attachment, len(commentIds))
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		users, err := h.getUsers(c.Context(), userIds)
+		m, err := h.getUsers(c.Context(), userIds)
 		if err != nil {
 			return
 		}
 
 		for _, node := range result.Nodes {
-			node.User = users[node.UserID]
+			node.User = m[node.UserID]
 		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		query, args, err := sqlx.In(`
-			SELECT id, pin_id, text, created_at, updated_at
-			FROM comments
-			WHERE pin_id IN (?)
-			GROUP BY pin_id
-			HAVING MIN(created_at)
-		`, pinIds)
+
+		m, _ := h.getComments(c.UserContext(), commentIds)
 		if err != nil {
-			log.Error().Err(err).Msg("pin.pins: comments")
 			return
 		}
+		comments = m
+	}()
 
-		rows, err := h.db.QueryxContext(c.UserContext(), query, args...)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		m, _ := h.getAttachments(c.UserContext(), commentIds)
 		if err != nil {
-			log.Error().Err(err).Msg("pin.pins: comments")
 			return
 		}
-		defer rows.Close()
-
-		m := make(map[int]*model.Comment, len(userIds))
-		for rows.Next() {
-			var node struct {
-				model.Comment
-				PinID int `db:"pin_id"`
-			}
-			if err := rows.StructScan(&node); err != nil {
-				log.Error().Err(err).Msg("pin.pins: comments")
-				return
-			}
-			m[node.PinID] = &node.Comment
-		}
-
-		for _, node := range result.Nodes {
-			node.Comment = m[node.ID]
-		}
+		attachments = m
 	}()
 
 	wg.Wait()
+
+	for _, node := range result.Nodes {
+		node.Comment = comments[node.CommentID]
+		if v, ok := attachments[node.ID]; ok {
+			node.Comment.Attachments = v
+		} else {
+			node.Comment.Attachments = []*model.Attachment{}
+		}
+	}
 
 	return c.Status(fiber.StatusOK).JSON(result)
 }
@@ -264,7 +264,7 @@ func (h *Handler) pinComments(c *fiber.Ctx) error {
 	}
 	defer rows.Close()
 
-	var userIds []int
+	var userIds, commentIds []int
 	for rows.Next() {
 		var node model.Comment
 		if err := rows.StructScan(&node); err != nil {
@@ -273,6 +273,7 @@ func (h *Handler) pinComments(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(result)
 		}
 		userIds = append(userIds, node.UserID)
+		commentIds = append(commentIds, node.ID)
 		result.Nodes = append(result.Nodes, &node)
 	}
 	c.Set("X-Total-Count", strconv.Itoa(len(result.Nodes)))
@@ -281,14 +282,41 @@ func (h *Handler) pinComments(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(result)
 	}
 
-	users, err := h.getUsers(c.Context(), userIds)
-	if err != nil {
-		return c.Status(fiber.StatusOK).JSON(result)
-	}
+	var wg sync.WaitGroup
 
-	for _, node := range result.Nodes {
-		node.User = users[node.UserID]
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		m, err := h.getUsers(c.Context(), userIds)
+		if err != nil {
+			return
+		}
+
+		for _, node := range result.Nodes {
+			node.User = m[node.UserID]
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		m, err := h.getAttachments(c.Context(), commentIds)
+		if err != nil {
+			return
+		}
+
+		for _, node := range result.Nodes {
+			if v, ok := m[node.ID]; ok {
+				node.Attachments = v
+			} else {
+				node.Attachments = []*model.Attachment{}
+			}
+		}
+	}()
+
+	wg.Wait()
 
 	return c.Status(fiber.StatusOK).JSON(result)
 }

@@ -1,12 +1,51 @@
 package handler
 
 import (
+	"context"
+
 	"github.com/brantem/aloy/constant"
 	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/handler/body"
+	"github.com/brantem/aloy/model"
 	"github.com/gofiber/fiber/v2"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 )
+
+func (h *Handler) getComments(ctx context.Context, commentIds []int) (map[int]*model.Comment, error) {
+	if len(commentIds) == 0 {
+		return nil, nil
+	}
+
+	query, args, err := sqlx.In(`
+		SELECT id, text, created_at, updated_at
+		FROM comments
+		WHERE id IN (?)
+	`, commentIds)
+	if err != nil {
+		log.Error().Err(err).Msg("comment.getComments")
+		return nil, errs.ErrInternalServerError
+	}
+
+	rows, err := h.db.QueryxContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Err(err).Msg("comment.getComments")
+		return nil, errs.ErrInternalServerError
+	}
+	defer rows.Close()
+
+	m := make(map[int]*model.Comment, len(commentIds))
+	for rows.Next() {
+		var node model.Comment
+		if err := rows.StructScan(&node); err != nil {
+			log.Error().Err(err).Msg("comment.getComments")
+			return nil, errs.ErrInternalServerError
+		}
+		m[node.ID] = &node
+	}
+
+	return m, nil
+}
 
 func (h *Handler) updateComment(c *fiber.Ctx) error {
 	var result struct {
