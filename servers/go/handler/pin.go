@@ -191,17 +191,19 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 
-	qb := sq.Insert("attachments").Columns("comment_id", "url", "data")
-	for _, attachment := range attachments {
-		buf, _ := json.Marshal(attachment.Data)
-		qb = qb.Values(commentID, attachment.URL, string(buf))
-	}
+	if len(attachments) > 0 {
+		qb := sq.Insert("attachments").Columns("comment_id", "url", "data")
+		for _, attachment := range attachments {
+			buf, _ := json.Marshal(attachment.Data)
+			qb = qb.Values(commentID, attachment.URL, string(buf))
+		}
 
-	if _, err = qb.PlaceholderFormat(sq.Dollar).RunWith(tx).Exec(); err != nil {
-		tx.Rollback()
-		log.Error().Err(err).Msg("pin.createPin")
-		result.Error = errs.ErrInternalServerError
-		return c.Status(fiber.StatusInternalServerError).JSON(result)
+		if _, err = qb.PlaceholderFormat(sq.Dollar).RunWith(tx).Exec(); err != nil {
+			tx.Rollback()
+			log.Error().Err(err).Msg("pin.createPin")
+			result.Error = errs.ErrInternalServerError
+			return c.Status(fiber.StatusInternalServerError).JSON(result)
+		}
 	}
 
 	tx.Commit()
@@ -389,17 +391,19 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 
-	qb := sq.Insert("attachments").Columns("comment_id", "url", "data")
-	for _, attachment := range attachments {
-		buf, _ := json.Marshal(attachment.Data)
-		qb = qb.Values(comment.ID, attachment.URL, string(buf))
-	}
+	if len(attachments) > 0 {
+		qb := sq.Insert("attachments").Columns("comment_id", "url", "data")
+		for _, attachment := range attachments {
+			buf, _ := json.Marshal(attachment.Data)
+			qb = qb.Values(comment.ID, attachment.URL, string(buf))
+		}
 
-	if _, err = qb.PlaceholderFormat(sq.Dollar).RunWith(tx).Exec(); err != nil {
-		tx.Rollback()
-		log.Error().Err(err).Msg("pin.createComment")
-		result.Error = errs.ErrInternalServerError
-		return c.Status(fiber.StatusInternalServerError).JSON(result)
+		if _, err = qb.PlaceholderFormat(sq.Dollar).RunWith(tx).Exec(); err != nil {
+			tx.Rollback()
+			log.Error().Err(err).Msg("pin.createComment")
+			result.Error = errs.ErrInternalServerError
+			return c.Status(fiber.StatusInternalServerError).JSON(result)
+		}
 	}
 
 	tx.Commit()

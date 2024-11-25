@@ -65,8 +65,11 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 	}
 
 	if len(me) != 0 {
-		log.Error().Any("me", me).Send()
 		return nil, me
+	}
+
+	if len(m) == 0 {
+		return nil, nil
 	}
 
 	result := make([]*UploadAttachmentResult, 0, len(m))

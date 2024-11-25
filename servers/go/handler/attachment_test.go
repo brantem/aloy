@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io"
 	"mime/multipart"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/testutil"
 	"github.com/brantem/aloy/testutil/db"
 	"github.com/brantem/aloy/testutil/storage"
@@ -32,6 +32,29 @@ func Test_uploadAttachments(t *testing.T) {
 
 	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	hash := base64.StdEncoding.EncodeToString(thumbhash.EncodeImage(img))
+
+	t.Run("empty", func(t *testing.T) {
+		storage := storage.New()
+		h := New(nil, storage)
+
+		app := fiber.New()
+		app.Post("/", func(c *fiber.Ctx) error {
+			result, err := h.uploadAttachments(c)
+			assert.Nil(err)
+			assert.Empty(result)
+			return c.SendStatus(fiber.StatusOK)
+		})
+
+		buf := &bytes.Buffer{}
+		writer := multipart.NewWriter(buf)
+
+		writer.Close()
+
+		req := httptest.NewRequest(fiber.MethodPost, "/", buf)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		app.Test(req)
+	})
 
 	t.Run("ignore", func(t *testing.T) {
 		storage := storage.New()
@@ -66,7 +89,6 @@ func Test_uploadAttachments(t *testing.T) {
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
 			result, err := h.uploadAttachments(c)
-			assert.Equal(errs.MapErrors{"attachments": errs.NewCodeError("TOO_MANY")}, err)
 			assert.Nil(result)
 			return c.JSON(err)
 		})
@@ -85,7 +107,9 @@ func Test_uploadAttachments(t *testing.T) {
 		req := httptest.NewRequest(fiber.MethodPost, "/", buf)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		app.Test(req)
+		resp, _ := app.Test(req)
+		body, _ := io.ReadAll(resp.Body)
+		assert.Equal(`{"attachments":"TOO_MANY"}`, string(body))
 	})
 
 	t.Run("TOO_BIG", func(t *testing.T) {
@@ -95,9 +119,8 @@ func Test_uploadAttachments(t *testing.T) {
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
 			result, err := h.uploadAttachments(c)
-			assert.Equal(errs.MapErrors{"attachments.1": errs.NewCodeError("TOO_BIG")}, err)
 			assert.Nil(result)
-			return c.SendStatus(fiber.StatusOK)
+			return c.JSON(err)
 		})
 
 		buf := &bytes.Buffer{}
@@ -111,7 +134,9 @@ func Test_uploadAttachments(t *testing.T) {
 		req := httptest.NewRequest(fiber.MethodPost, "/", buf)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		app.Test(req)
+		resp, _ := app.Test(req)
+		body, _ := io.ReadAll(resp.Body)
+		assert.Equal(`{"attachments.1":"TOO_BIG"}`, string(body))
 	})
 
 	t.Run("UNSUPPORTED", func(t *testing.T) {
@@ -121,9 +146,8 @@ func Test_uploadAttachments(t *testing.T) {
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
 			result, err := h.uploadAttachments(c)
-			assert.Equal(errs.MapErrors{"attachments.1": errs.NewCodeError("UNSUPPORTED")}, err)
 			assert.Nil(result)
-			return c.SendStatus(fiber.StatusOK)
+			return c.JSON(err)
 		})
 
 		buf := &bytes.Buffer{}
@@ -137,7 +161,9 @@ func Test_uploadAttachments(t *testing.T) {
 		req := httptest.NewRequest(fiber.MethodPost, "/", buf)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		app.Test(req)
+		resp, _ := app.Test(req)
+		body, _ := io.ReadAll(resp.Body)
+		assert.Equal(`{"attachments.1":"UNSUPPORTED"}`, string(body))
 	})
 
 	t.Run("success", func(t *testing.T) {
