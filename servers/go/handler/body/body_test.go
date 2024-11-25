@@ -103,6 +103,6 @@ func TestValidateStruct(t *testing.T) {
 }
 
 func TestValidateVar(t *testing.T) {
-	assert.Equal(t, errs.ErrInvalid, ValidateVar("", "trim,required"))
-	assert.Empty(t, ValidateVar(" a ", "trim,required"))
+	assert.Equal(t, errs.ErrInvalid, ValidateVar("", "required"))
+	assert.Empty(t, ValidateVar("a", "required"))
 }
