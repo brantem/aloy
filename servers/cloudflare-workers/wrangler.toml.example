@@ -12,3 +12,7 @@ database_name = "aloy"
 database_id = "DATABASE_ID"
 migrations_table = "migrations"
 migrations_dir = "../migrations"
+
+[[r2_buckets]]
+binding = "Bucket"
+bucket_name = "aloy"
