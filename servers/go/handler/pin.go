@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"sync"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/brantem/aloy/constant"
 	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/handler/body"
@@ -149,6 +151,8 @@ func (h *Handler) createPin(c *fiber.Ctx) error {
 		result.Error = err
 		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
+
+	// TODO: upload attachments
 
 	tx := h.db.MustBeginTx(c.UserContext(), nil)
 
@@ -299,25 +303,58 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 		Error   any      `json:"error"`
 	}
 
-	var data struct {
-		Text string `json:"text" validate:"trim,required"`
+	form, err := c.MultipartForm()
+	if err != nil {
+		log.Error().Err(err).Msg("pin.createComment")
+		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
-	if err := body.Parse(c, &data); err != nil {
-		result.Error = err
+
+	text := form.Value["text"][0]
+	if err := body.ValidateVar(text, "trim,required"); err != nil {
+		result.Error = fiber.Map{"text": err.Error()}
 		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
+	attachments, err := h.uploadAttachments(c.UserContext(), form.File)
+	if err != nil {
+		result.Error = err
+		if err == errs.ErrInternalServerError {
+			c.Status(fiber.StatusInternalServerError)
+		} else {
+			c.Status(fiber.StatusBadRequest)
+		}
+		return c.JSON(result)
+	}
+
+	tx := h.db.MustBeginTx(c.UserContext(), nil)
+
 	var comment Comment
-	err := h.db.QueryRowContext(c.UserContext(), `
+	err = tx.QueryRowContext(c.UserContext(), `
 		INSERT INTO comments (pin_id, user_id, text)
 		VALUES (?, ?, ?)
 		RETURNING id
-	`, c.Params("pinId"), c.Locals(constant.UserIDKey), data.Text).Scan(&comment.ID)
+	`, c.Params("pinId"), c.Locals(constant.UserIDKey), text).Scan(&comment.ID)
 	if err != nil {
+		tx.Rollback()
 		log.Error().Err(err).Msg("pin.createComment")
 		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
+
+	qb := sq.Insert("attachments").Columns("comment_id", "url", "data")
+	for _, attachment := range attachments {
+		buf, _ := json.Marshal(attachment.Data)
+		qb = qb.Values(comment.ID, attachment.URL, string(buf))
+	}
+
+	if _, err = qb.PlaceholderFormat(sq.Dollar).RunWith(tx).Exec(); err != nil {
+		tx.Rollback()
+		log.Error().Err(err).Msg("pin.createComment")
+		result.Error = errs.ErrInternalServerError
+		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	}
+
+	tx.Commit()
 	result.Comment = &comment
 
 	return c.Status(fiber.StatusOK).JSON(result)

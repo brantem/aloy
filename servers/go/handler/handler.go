@@ -1,19 +1,47 @@
 package handler
 
 import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/brantem/aloy/middleware"
 	"github.com/brantem/aloy/storage"
+	"github.com/brantem/aloy/util"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/utils"
 	"github.com/jmoiron/sqlx"
 )
+
+type config struct {
+	attachmentBaseURL        string
+	attachmentMaxCount       int
+	attachmentMaxSize        int
+	attachmentSupportedTypes []string
+}
 
 type Handler struct {
 	db      *sqlx.DB
 	storage storage.StorageInterface
+
+	config config
 }
 
 func New(db *sqlx.DB, storage storage.StorageInterface) *Handler {
-	return &Handler{db, storage}
+	attachmentMaxCount, _ := strconv.Atoi(util.Getenv("ATTACHMENT_MAX_COUNT", "3"))
+
+	return &Handler{
+		db:      db,
+		storage: storage,
+
+		config: config{
+			attachmentBaseURL:        fmt.Sprintf("%s/attachments", os.Getenv("ASSETS_BASE_URL")),
+			attachmentMaxCount:       attachmentMaxCount,
+			attachmentMaxSize:        utils.ConvertToBytes(util.Getenv("ATTACHMENT_MAX_SIZE", "100kb")),
+			attachmentSupportedTypes: strings.Split(util.Getenv("ATTACHMENT_SUPPORTED_TYPES", "image/gif,image/jpeg,image/png,image/webp"), ","),
+		},
+	}
 }
 
 func (h *Handler) Register(r *fiber.App, m middleware.MiddlewareInterface) {

@@ -44,6 +44,8 @@ func (h *Handler) deleteComment(c *fiber.Ctx) error {
 		Error   any  `json:"error"`
 	}
 
+	// TODO: delete all attachments
+
 	_, err := h.db.ExecContext(c.UserContext(), `
 		DELETE FROM comments
 		WHERE id = ?
