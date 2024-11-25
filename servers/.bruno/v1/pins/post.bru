@@ -6,7 +6,7 @@ meta {
 
 post {
   url: {{url}}/v1/pins
-  body: json
+  body: multipartForm
   auth: none
 }
 
@@ -15,15 +15,14 @@ headers {
   Aloy-User-ID: {{userId}}
 }
 
-body:json {
-  {
-    "_path": "/",
-    "path": "body",
-    "w": 1000,
-    "_x": 0.1,
-    "x": 0.1,
-    "_y": 0.1,
-    "y": 0.1,
-    "text": "This is amazing!"
-  }
+body:multipart-form {
+  _path: /
+  path: body
+  w: 1000
+  _x: 0.1
+  x: 0.1
+  _y: 0.1
+  y: 0.1
+  text: This is amazing!
+  ~attachments.1: @file()
 }

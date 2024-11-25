@@ -1,10 +1,21 @@
+import { vi } from 'vitest';
 import { env } from 'cloudflare:test';
 import { Hono } from 'hono';
+import { contextStorage } from 'hono/context-storage';
 
 import pins from './pins';
 
 const app = new Hono<Env>();
+app.use(contextStorage());
 app.use(async (c, next) => {
+  c.set('config', {
+    assetsBaseUrl: '',
+
+    attachmentMaxCount: 1,
+    attachmentMaxSize: 1,
+    attachmentSupportedTypes: ['text/plain'],
+  });
+
   c.set('appId', 'test');
   c.set('userId', '1');
   await next();
@@ -12,8 +23,17 @@ app.use(async (c, next) => {
 app.route('/pins', pins);
 
 describe('/pins', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date());
+  });
+
   beforeEach(async () => {
     await env.DB.exec("INSERT INTO users VALUES ('user-1', 1, '1', 'User 1');");
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
   });
 
   test('GET /', async () => {
@@ -59,24 +79,19 @@ describe('/pins', () => {
 
   test('POST /', async () => {
     expect(await env.DB.prepare('SELECT * FROM pins').first()).toBeNull();
-    const res = await app.request(
-      '/pins',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          _path: ' / ',
-          path: ' body ',
-          w: 1,
-          _x: 0,
-          x: 0,
-          _y: 0,
-          y: 0,
-          text: ' a ',
-        }),
-      },
-      env,
-    );
+
+    const formData = new FormData();
+    formData.append('_path', ' / ');
+    formData.append('path', ' body ');
+    formData.append('w', '1');
+    formData.append('_x', '0');
+    formData.append('x', '0');
+    formData.append('_y', '0');
+    formData.append('y', '0');
+    formData.append('text', ' a ');
+    formData.append('attachments.1', new File(['a'], 'a.txt', { type: 'text/plain' }));
+
+    const res = await app.request('/pins', { method: 'POST', body: formData }, env);
     expect(await env.DB.prepare('SELECT * FROM pins').first()).toEqual(
       expect.objectContaining({
         id: 1,
@@ -96,18 +111,34 @@ describe('/pins', () => {
     expect(await env.DB.prepare('SELECT * FROM comments').first()).toEqual(
       expect.objectContaining({ id: 1, pin_id: 1, user_id: 1, text: 'a' }),
     );
+    expect(await env.DB.prepare('SELECT * FROM attachments').first()).toEqual({
+      id: 1,
+      comment_id: 1,
+      url: `/attachments/${Date.now()}.txt`,
+      data: `{"type":"text/plain"}`,
+    });
+
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ pin: { id: 1 }, error: null });
   });
 });
 
 describe('/pins/:id', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date());
+  });
+
   beforeEach(async () => {
     await env.DB.exec(`
       INSERT INTO users VALUES ('user-1', 1, '1', 'User 1');
       INSERT INTO pins VALUES (1, 'test', 1, '/', 'body', 1, 0, 0, 0, 0, CURRENT_TIME, NULL, NULL);
       INSERT INTO comments VALUES (1, 1, 1, 'a', CURRENT_TIME, CURRENT_TIME);
     `);
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
   });
 
   test('DELETE /complete', async () => {
@@ -175,18 +206,25 @@ describe('/pins/:id', () => {
   test('POST /comments', async () => {
     const comment = expect.objectContaining({ id: 1, pin_id: 1, user_id: 1, text: 'a' });
     expect((await env.DB.prepare('SELECT * FROM comments').all()).results).toEqual([comment]);
+    expect((await env.DB.prepare('SELECT * FROM attachments').all()).results).toEqual([]);
+
+    const formData = new FormData();
+    formData.append('text', ' b ');
+    formData.append('attachments.1', new File(['a'], 'a.txt', { type: 'text/plain' }));
+
+    const res = await app.request('/pins/1/comments', { method: 'POST', body: formData }, env);
 
     const comment2 = expect.objectContaining({ id: 2, pin_id: 1, user_id: 1, text: 'b' });
-    const res = await app.request(
-      '/pins/1/comments',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: ' b ' }),
-      },
-      env,
-    );
     expect((await env.DB.prepare('SELECT * FROM comments').all()).results).toEqual([comment, comment2]);
+    expect((await env.DB.prepare('SELECT * FROM attachments').all()).results).toEqual([
+      {
+        id: 1,
+        comment_id: 2,
+        url: `/attachments/${Date.now()}.txt`,
+        data: `{"type":"text/plain"}`,
+      },
+    ]);
+
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ comment: { id: 2 }, error: null });
   });

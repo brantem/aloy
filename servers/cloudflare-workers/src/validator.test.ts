@@ -4,10 +4,32 @@ import * as v from 'valibot';
 import _app from './';
 import * as validator from './validator';
 
+describe('issuesToError', () => {
+  const schema = v.object({ text: v.pipe(v.string(), v.trim(), v.nonEmpty()) });
+
+  test('required', async () => {
+    const result = v.safeParse(schema, {});
+    if (result.success) return;
+    expect(validator.issuesToError(result.issues)).toEqual({ text: 'REQUIRED' });
+  });
+
+  test('invalid', async () => {
+    const result = v.safeParse(schema, { text: ' ' });
+    if (result.success) return;
+    expect(validator.issuesToError(result.issues)).toEqual({ text: 'INVALID' });
+  });
+
+  test('success', async () => {
+    const result = v.safeParse(schema, { text: ' a ' });
+    if (result.success) return;
+    expect(validator.issuesToError(result.issues)).toEqual({ text: 'a' });
+  });
+});
+
 describe('json', () => {
   const app = new Hono();
-  const testSchema = v.object({ text: v.pipe(v.string(), v.trim(), v.nonEmpty()) });
-  app.post('/', validator.json(testSchema), async (c) => c.json(await c.req.valid('json'), 200));
+  const schema = v.object({ text: v.pipe(v.string(), v.trim(), v.nonEmpty()) });
+  app.post('/', validator.json(schema), async (c) => c.json(await c.req.valid('json'), 200));
 
   async function send(body: Record<string, any>) {
     return app.request('/', {

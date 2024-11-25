@@ -17,6 +17,8 @@ comments.patch('/:id', validator.json(updateCommentSchema), async (c) => {
 });
 
 comments.delete('/:id', async (c) => {
+  // TODO: delete all attachments
+
   const stmt = c.env.DB.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?');
   await stmt.bind(c.req.param('id'), c.get('userId')).run();
   return c.json({ success: true, error: null }, 200);

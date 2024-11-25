@@ -6,6 +6,12 @@ compatibility_date = "2024-08-21"
 [vars]
 ALLOW_ORIGINS = "*"
 
+ASSETS_BASE_URL = "https://assets.aloy.com"
+
+ATTACHMENT_MAX_COUNT = "3"
+ATTACHMENT_MAX_SIZE = "100kb"
+ATTACHMENT_SUPPORTED_TYPES = "image/gif,image/jpeg,image/png,image/webp"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "aloy"

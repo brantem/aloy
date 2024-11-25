@@ -2,10 +2,16 @@ export {};
 
 declare global {
   interface Env {
-    Bindings: Bindings & {
-      ALLOW_ORIGINS: string;
-    };
+    Bindings: Bindings;
     Variables: {
+      config: {
+        assetsBaseUrl: string;
+
+        attachmentMaxCount: number;
+        attachmentMaxSize: number;
+        attachmentSupportedTypes: string[];
+      };
+
       appId: string;
       userId: string;
     };
