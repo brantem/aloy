@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -15,7 +14,8 @@ import (
 )
 
 type config struct {
-	attachmentBaseURL        string
+	assetsBaseURL string
+
 	attachmentMaxCount       int
 	attachmentMaxSize        int
 	attachmentSupportedTypes []string
@@ -36,7 +36,8 @@ func New(db *sqlx.DB, storage storage.StorageInterface) *Handler {
 		storage: storage,
 
 		config: config{
-			attachmentBaseURL:        fmt.Sprintf("%s/attachments", os.Getenv("ASSETS_BASE_URL")),
+			assetsBaseURL: os.Getenv("ASSETS_BASE_URL"),
+
 			attachmentMaxCount:       attachmentMaxCount,
 			attachmentMaxSize:        utils.ConvertToBytes(util.Getenv("ATTACHMENT_MAX_SIZE", "100kb")),
 			attachmentSupportedTypes: strings.Split(util.Getenv("ATTACHMENT_SUPPORTED_TYPES", "image/gif,image/jpeg,image/png,image/webp"), ","),

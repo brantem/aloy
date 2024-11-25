@@ -90,9 +90,8 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 			return nil, errs.ErrInternalServerError
 		}
 
-		fileName := fmt.Sprintf("%d%s", time.Now().Unix()*1000, filepath.Ext(fh.Filename))
 		opts := &storage.UploadOpts{
-			Key:           "attachments/" + fileName,
+			Key:           fmt.Sprintf("attachments/%d%s", time.Now().Unix()*1000, filepath.Ext(fh.Filename)),
 			Body:          file,
 			ContentType:   _type,
 			ContentLength: fh.Size,
@@ -103,7 +102,7 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 		}
 
 		result = append(result, &UploadAttachmentResult{
-			URL: fmt.Sprintf("%s/%s", h.config.attachmentBaseURL, fileName),
+			URL: fmt.Sprintf("%s/%s", h.config.assetsBaseURL, opts.Key),
 			Data: map[string]string{
 				"type": _type,
 				"hash": base64.StdEncoding.EncodeToString(thumbhash.EncodeImage(img)),

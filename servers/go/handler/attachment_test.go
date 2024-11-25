@@ -9,7 +9,6 @@ import (
 	"image/png"
 	"mime/multipart"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -150,7 +149,7 @@ func Test_uploadAttachments(t *testing.T) {
 			result, err := h.uploadAttachments(c)
 			assert.Nil(err)
 			assert.Equal([]*UploadAttachmentResult{{
-				URL: fmt.Sprintf("%s/attachments/%s", assetsBaseURL, strings.TrimPrefix(storage.UploadOpts[0].Key, "attachments/")),
+				URL: fmt.Sprintf("%s/%s", h.config.assetsBaseURL, storage.UploadOpts[0].Key),
 				Data: map[string]string{
 					"hash": hash,
 					"type": "image/png",
