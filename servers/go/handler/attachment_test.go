@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUploadAttachments(t *testing.T) {
+func Test_uploadAttachments(t *testing.T) {
 	assert := assert.New(t)
 
 	assetsBaseURL := "https://assets.aloy.com"
@@ -47,8 +47,7 @@ func TestUploadAttachments(t *testing.T) {
 
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
-			form, _ := c.MultipartForm()
-			result, err := h.uploadAttachments(c.UserContext(), form.File)
+			result, err := h.uploadAttachments(c)
 			assert.Nil(err)
 			assert.Empty(result)
 			return c.SendStatus(fiber.StatusOK)
@@ -74,8 +73,7 @@ func TestUploadAttachments(t *testing.T) {
 
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
-			form, _ := c.MultipartForm()
-			result, err := h.uploadAttachments(c.UserContext(), form.File)
+			result, err := h.uploadAttachments(c)
 			assert.Equal(errs.MapErrors{"attachments": errs.NewCodeError("TOO_MANY")}, err)
 			assert.Nil(result)
 			return c.JSON(err)
@@ -104,8 +102,7 @@ func TestUploadAttachments(t *testing.T) {
 
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
-			form, _ := c.MultipartForm()
-			result, err := h.uploadAttachments(c.UserContext(), form.File)
+			result, err := h.uploadAttachments(c)
 			assert.Equal(errs.MapErrors{"attachments.1": errs.NewCodeError("TOO_BIG")}, err)
 			assert.Nil(result)
 			return c.SendStatus(fiber.StatusOK)
@@ -131,8 +128,7 @@ func TestUploadAttachments(t *testing.T) {
 
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
-			form, _ := c.MultipartForm()
-			result, err := h.uploadAttachments(c.UserContext(), form.File)
+			result, err := h.uploadAttachments(c)
 			assert.Equal(errs.MapErrors{"attachments.1": errs.NewCodeError("UNSUPPORTED")}, err)
 			assert.Nil(result)
 			return c.SendStatus(fiber.StatusOK)
@@ -158,8 +154,7 @@ func TestUploadAttachments(t *testing.T) {
 
 		app := fiber.New()
 		app.Post("/", func(c *fiber.Ctx) error {
-			form, _ := c.MultipartForm()
-			result, err := h.uploadAttachments(c.UserContext(), form.File)
+			result, err := h.uploadAttachments(c)
 			assert.Nil(err)
 			assert.Equal([]*UploadAttachmentResult{{
 				URL: fmt.Sprintf("%s/attachments/%s", assetsBaseURL, strings.TrimPrefix(storage.UploadOpts[0].Key, "attachments/")),

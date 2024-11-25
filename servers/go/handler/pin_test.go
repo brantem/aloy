@@ -1,14 +1,23 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/base64"
+	"fmt"
+	"image"
+	"image/png"
 	"io"
+	"mime/multipart"
 	"net/http/httptest"
+	"net/textproto"
 	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/brantem/aloy/testutil/db"
 	"github.com/brantem/aloy/testutil/middleware"
+	"github.com/brantem/aloy/testutil/storage"
+	"github.com/galdor/go-thumbhash"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -230,19 +239,46 @@ func Test_pinComments(t *testing.T) {
 }
 
 func Test_createComment(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	hash := base64.StdEncoding.EncodeToString(thumbhash.EncodeImage(img))
+
 	db, mock := db.New()
-	h := New(db, nil)
+	storage := storage.New()
+	h := New(db, storage)
 	m := middleware.New()
+
+	mock.ExpectBegin()
 
 	mock.ExpectQuery("INSERT INTO comments").
 		WithArgs("1", m.UserIDValue, "Test").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
+	mock.ExpectExec("INSERT INTO attachments").
+		WithArgs(int64(1), sqlmock.AnyArg(), fmt.Sprintf(`{"hash":"%s","type":"image/png"}`, hash)).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	mock.ExpectCommit()
+
 	app := fiber.New()
 	h.Register(app, m)
 
-	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/comments", strings.NewReader(`{"text":" Test "}`))
-	req.Header.Set("Content-Type", "application/json")
+	buf := &bytes.Buffer{}
+	writer := multipart.NewWriter(buf)
+
+	text, _ := writer.CreateFormField("text")
+	text.Write([]byte(" Test "))
+
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", `form-data; name="attachments.1"; filename="a.png"`)
+	header.Set("Content-Type", "image/png")
+
+	part, _ := writer.CreatePart(header)
+	png.Encode(part, img)
+
+	writer.Close()
+
+	req := httptest.NewRequest(fiber.MethodPost, "/v1/pins/1/comments", buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, _ := app.Test(req)
 	assert.Nil(t, mock.ExpectationsWereMet())

@@ -303,19 +303,15 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 		Error   any      `json:"error"`
 	}
 
-	form, err := c.MultipartForm()
-	if err != nil {
-		log.Error().Err(err).Msg("pin.createComment")
-		return c.Status(fiber.StatusInternalServerError).JSON(result)
+	var data struct {
+		Text string `json:"text" validate:"trim,required"`
 	}
-
-	text := form.Value["text"][0]
-	if err := body.ValidateVar(text, "trim,required"); err != nil {
-		result.Error = fiber.Map{"text": err.Error()}
+	if err := body.Parse(c, &data); err != nil {
+		result.Error = err
 		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
-	attachments, err := h.uploadAttachments(c.UserContext(), form.File)
+	attachments, err := h.uploadAttachments(c)
 	if err != nil {
 		result.Error = err
 		if err == errs.ErrInternalServerError {
@@ -333,7 +329,7 @@ func (h *Handler) createComment(c *fiber.Ctx) error {
 		INSERT INTO comments (pin_id, user_id, text)
 		VALUES (?, ?, ?)
 		RETURNING id
-	`, c.Params("pinId"), c.Locals(constant.UserIDKey), text).Scan(&comment.ID)
+	`, c.Params("pinId"), c.Locals(constant.UserIDKey), data.Text).Scan(&comment.ID)
 	if err != nil {
 		tx.Rollback()
 		log.Error().Err(err).Msg("pin.createComment")

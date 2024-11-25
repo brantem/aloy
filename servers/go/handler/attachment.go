@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"image"
@@ -18,6 +17,7 @@ import (
 	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/storage"
 	"github.com/galdor/go-thumbhash"
+	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 	_ "golang.org/x/image/webp"
 )
@@ -27,11 +27,17 @@ type UploadAttachmentResult struct {
 	Data map[string]string
 }
 
-func (h *Handler) uploadAttachments(ctx context.Context, parts map[string][]*multipart.FileHeader) ([]*UploadAttachmentResult, error) {
-	m := make(map[string]*multipart.FileHeader, len(parts))
-	me := make(errs.MapErrors, len(parts))
+func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, error) {
+	form, err := c.MultipartForm()
+	if err != nil {
+		log.Error().Err(err).Msg("attachment.uploadAttachments")
+		return nil, errs.ErrInternalServerError
+	}
 
-	for key, files := range parts {
+	m := make(map[string]*multipart.FileHeader, len(form.File))
+	me := make(errs.MapErrors, len(form.File))
+
+	for key, files := range form.File {
 		if !strings.HasPrefix(key, "attachments") {
 			continue
 		}
@@ -66,18 +72,18 @@ func (h *Handler) uploadAttachments(ctx context.Context, parts map[string][]*mul
 
 		file, err := fh.Open()
 		if err != nil {
-			log.Error().Err(err).Str("key", key).Msg("comment.uploadAttachments")
+			log.Error().Err(err).Str("key", key).Msg("attachment.uploadAttachments")
 			return nil, errs.ErrInternalServerError
 		}
 
 		img, _, err := image.Decode(file)
 		if err != nil {
-			log.Error().Err(err).Str("key", key).Msg("comment.uploadAttachments")
+			log.Error().Err(err).Str("key", key).Msg("attachment.uploadAttachments")
 			return nil, errs.ErrInternalServerError
 		}
 
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			log.Error().Err(err).Msg("comment.uploadAttachments")
+			log.Error().Err(err).Msg("attachment.uploadAttachments")
 			return nil, errs.ErrInternalServerError
 		}
 
@@ -88,8 +94,8 @@ func (h *Handler) uploadAttachments(ctx context.Context, parts map[string][]*mul
 			ContentType:   _type,
 			ContentLength: fh.Size,
 		}
-		if err := h.storage.Upload(ctx, opts); err != nil {
-			log.Error().Err(err).Str("key", key).Msg("comment.uploadAttachments")
+		if err := h.storage.Upload(c.UserContext(), opts); err != nil {
+			log.Error().Err(err).Str("key", key).Msg("attachment.uploadAttachments")
 			return nil, errs.ErrInternalServerError
 		}
 
