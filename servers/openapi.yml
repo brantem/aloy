@@ -117,7 +117,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/CreatePinBody'
       responses:
@@ -170,7 +170,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/DeletePinResponse'
         '400':
           content:
             application/json:
@@ -214,7 +215,7 @@ paths:
           text/plain:
             schema:
               type: string
-              default: "1"
+              examples: ["1"]
       responses:
         '200':
           description: Successful Response
@@ -311,7 +312,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-datas:
             schema:
               $ref: '#/components/schemas/CreateCommentBody'
       responses:
@@ -437,10 +438,10 @@ components:
       properties:
         id:
           type: string
-          default: "user-1"
+          examples: ["user-1"]
         name:
           type: string
-          default: "User 1"
+          examples: ["User 1"]
       type: object
       required:
         - id
@@ -449,42 +450,52 @@ components:
       properties:
         id:
           type: integer
-          default: 1
+          examples: [1]
         user:
           $ref: '#/components/schemas/User'
         comment:
-          type: object
           properties:
             id:
               type: integer
-              default: 1
+              examples: [1]
             text:
               type: string
-              default: "This is amazing!"
+              examples: ["This is amazing!"]
+            attachments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Attachment'
             created_at:
               type: string
-              default: "2024-01-01T10:00:00Z"
+              examples: ["2024-01-01T10:00:00Z"]
             updated_at:
               type: string
-              default: "2024-01-01T10:00:00Z"
+              examples: ["2024-01-01T10:00:00Z"]
+          type: object
+          required:
+            - id
+            - text
+            - attachments
+            - created_at
+            - updated_at
         path:
           type: string
-          default: "body"
+          examples: ["body"]
         w:
           type: number
-          default: 1080
+          examples: [1080]
         _x:
           type: number
-          default: 0
+          examples: [0]
         x:
           type: number
-          default: 0
+          examples: [0]
         _y:
           type: number
-          default: 0
+          examples: [0]
         y:
           type: number
-          default: 0
+          examples: [0]
         completed_at:
             type:
             - 'null'
@@ -508,34 +519,63 @@ components:
       properties:
         id:
           type: integer
-          default: 1
+          examples: [1]
         user:
           $ref: '#/components/schemas/User'
         text:
           type: string
-          default: "This is amazing!"
+          examples: ["This is amazing!"]
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
         created_at:
           type: string
-          default: "2024-01-01T10:00:00Z"
+          examples: ["2024-01-01T10:00:00Z"]
         updated_at:
           type: string
-          default: "2024-01-01T10:00:00Z"
+          examples: ["2024-01-01T10:00:00Z"]
       type: object
       required:
         - id
         - user
         - text
+        - attachments
         - created_at
         - updated_at
+    Attachment:
+      properties:
+        id:
+          type: integer
+          examples: [1]
+        url:
+          type: string
+          examples: ["https://assets.aloy.com/attachments/1732609492608.png"]
+        data:
+          properties:
+            type:
+              type: string
+              examples: ["image/png"]
+            hash:
+              type: string
+              examples: ["Pwh+BwAI9wiIh4hwj3CI+AiIAAAAAAAA"]
+          type: object
+          required:
+              - type
+      type: object
+      required:
+        - id
+        - url
+        - data
 
     CreateUserBody:
       properties:
         id:
           type: string
-          default: "user-1"
+          examples: ["user-1"]
         name:
           type: string
-          default: "User 1"
+          examples: ["User 1"]
       type: object
       required:
         - id
@@ -547,7 +587,7 @@ components:
           properties:
             id:
               type: integer
-              default: 1
+              examples: [1]
           required:
             - id
         error:
@@ -573,28 +613,33 @@ components:
       properties:
         _path:
           type: string
-          default: "/"
+          examples: ["/"]
         path:
           type: string
-          default: "body"
+          examples: ["body"]
         w:
           type: number
-          default: 1080
+          examples: [1080]
         _x:
           type: number
-          default: 0
+          examples: [0]
         x:
           type: number
-          default: 0
+          examples: [0]
         _y:
           type: number
-          default: 0
+          examples: [0]
         y:
           type: number
-          default: 0
+          examples: [0]
         text:
           type: string
-          default: "This is amazing!"
+          examples: ["This is amazing!"]
+        attachments:
+          type: array
+          items:
+            type: string
+            format: binary
       type: object
       required:
         - path
@@ -609,7 +654,7 @@ components:
           properties:
             id:
               type: integer
-              default: 1
+              examples: [1]
           required:
             - id
         error:
@@ -618,11 +663,21 @@ components:
       required:
         - pin
         - error
+    DeletePinResponse:
+      properties:
+        success:
+          type: boolean
+          examples: [true]
+        error:
+          type: 'null'
+      type: object
+      required:
+        - error
     CompletePinResponse:
       properties:
         success:
           type: boolean
-          default: true
+          examples: [true]
         error:
           type: 'null'
       type: object
@@ -632,7 +687,12 @@ components:
       properties:
         text:
           type: string
-          default: "This is amazing!"
+          examples: ["This is amazing!"]
+        attachments:
+          type: array
+          items:
+            type: string
+            format: binary
       type: object
       required:
         - text
@@ -643,7 +703,7 @@ components:
           properties:
             id:
               type: integer
-              default: 1
+              examples: [1]
           required:
             - id
         error:
@@ -669,7 +729,7 @@ components:
       properties:
         text:
           type: string
-          default: "This is amazing!"
+          examples: ["This is amazing!"]
       type: object
       required:
         - text
@@ -677,7 +737,7 @@ components:
       properties:
         success:
           type: boolean
-          default: true
+          examples: [true]
         error:
           type: 'null'
       type: object
@@ -687,7 +747,7 @@ components:
       properties:
         success:
           type: boolean
-          default: true
+          examples: [true]
         error:
           type: 'null'
       type: object
