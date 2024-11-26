@@ -36,13 +36,15 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 		return nil, errs.ErrInternalServerError
 	}
 
+	attachments := form.File["attachments"]
+	if len(attachments) >= h.config.attachmentMaxCount {
+		return nil, errs.MapErrors{"attachments": errs.NewCodeError("TOO_MANY")}
+	}
+
 	m := make(map[string]*multipart.FileHeader, len(form.File))
 	me := make(errs.MapErrors, len(form.File))
 
-	for i, fh := range form.File["attachments"] {
-		if len(m) >= h.config.attachmentMaxCount {
-			return nil, errs.MapErrors{"attachments": errs.NewCodeError("TOO_MANY")}
-		}
+	for i, fh := range attachments {
 
 		if fh.Size > int64(h.config.attachmentMaxSize) {
 			me[fmt.Sprintf("attachments.%d", i)] = errs.NewCodeError("TOO_BIG")
