@@ -6,10 +6,10 @@ from anyio import Path
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, field_validator
 
-from routes.deps import get_db, get_user_id
+from routes import deps
 
 logger = logging.getLogger("uvicorn.error")
-router = APIRouter(prefix="/comments", dependencies=[Depends(get_user_id)])
+router = APIRouter(prefix="/comments", dependencies=[Depends(deps.get_user_id)])
 
 
 class UpdateCommentBody(BaseModel):
@@ -28,8 +28,8 @@ def update_comment(
     comment_id: Annotated[int, Path()],
     body: UpdateCommentBody,
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         db.execute("UPDATE comments SET text = ? WHERE id = ? AND user_id = ?", (body.text, comment_id, user_id))
@@ -44,8 +44,8 @@ def update_comment(
 def delete_comment(
     comment_id: Annotated[int, Path()],
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         db.execute("DELETE FROM comments WHERE id = ? AND user_id = ?", (comment_id, user_id))

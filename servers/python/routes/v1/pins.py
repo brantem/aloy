@@ -5,18 +5,19 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Path, Response, status
 from pydantic import BaseModel, Field, field_validator
 
-from routes.deps import get_app_id, get_db, get_user_id
+from routes import deps
+from routes.v1 import shared
 
 logger = logging.getLogger("uvicorn.error")
-router = APIRouter(prefix="/pins", dependencies=[Depends(get_user_id)])
+router = APIRouter(prefix="/pins", dependencies=[Depends(deps.get_user_id)])
 
 
 @router.get("/")
 def get_pins(
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    app_id=Depends(get_app_id),
-    _user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    app_id=Depends(deps.get_app_id),
+    _user_id=Depends(deps.get_user_id),
     me: int | None = None,
     _path: str | None = None,
 ):
@@ -44,10 +45,10 @@ def get_pins(
 
         # Unsure how to run these concurrently
         user_ids = [pin["user_id"] for pin in pins]
-        users = get_users(db, user_ids)
+        users = shared.get_users(db, user_ids)
 
         pin_ids = [pin["id"] for pin in pins]
-        comments = get_comments(db, pin_ids)
+        comments = shared.get_comments(db, pin_ids)
 
         for node in nodes:
             node["user"] = users.get(node["user_id"])
@@ -85,9 +86,9 @@ class CreatePinBody(BaseModel):
 async def create_pin(
     body: CreatePinBody,
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    app_id=Depends(get_app_id),
-    user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    app_id=Depends(deps.get_app_id),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         sql = """
@@ -124,8 +125,8 @@ def complete_pin(
     pin_id: Annotated[int, Path()],
     response: Response,
     body: str = Body(default=""),
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         if body.strip() == "1":
@@ -159,8 +160,8 @@ def complete_pin(
 def delete_pin(
     pin_id: Annotated[int, Path()],
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         db.execute("DELETE FROM pins WHERE id = ? AND user_id = ?", (pin_id, user_id))
@@ -175,7 +176,7 @@ def delete_pin(
 def get_pin_comments(
     pin_id: Annotated[int, Path()],
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
+    db: sqlite3.Connection = Depends(deps.get_db),
 ):
     try:
         sql = """
@@ -193,7 +194,7 @@ def get_pin_comments(
             return {"nodes": [], "error": None}
 
         user_ids = [comment["user_id"] for comment in nodes]
-        users = get_users(db, user_ids)
+        users = shared.get_users(db, user_ids)
 
         for node in nodes:
             node["user"] = users.get(node["user_id"])
@@ -223,8 +224,8 @@ def create_comment(
     pin_id: Annotated[int, Path()],
     body: CreateCommentBody,
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id"
@@ -234,32 +235,3 @@ def create_comment(
         logger.error(f"pins.create_comment: {e}")
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"comment": None, "error": {"code": "INTERNAL_SERVER_ERROR"}}
-
-
-def get_users(db: sqlite3.Connection, user_ids: list[int]):
-    try:
-        sql = "SELECT id, name FROM users WHERE id IN ({})".format(",".join("?" * len(user_ids)))
-        users = db.execute(sql, user_ids).fetchall()
-        return {user["id"]: dict(user) for user in users}
-    except Exception as e:
-        logger.error(f"pins.get_users: {e}")
-        return {}
-
-
-def get_comments(db: sqlite3.Connection, comment_ids: list[int]):
-    try:
-        sql = """
-            SELECT id, pin_id, text, created_at, updated_at
-            FROM comments
-            WHERE pin_id IN ({})
-            GROUP BY pin_id
-            HAVING MIN(created_at)
-        """.format(",".join("?" * len(comment_ids)))
-        comments = db.execute(sql, comment_ids).fetchall()
-        return {
-            comment["pin_id"]: {k: comment[k] for k in ("id", "text", "created_at", "updated_at")}
-            for comment in comments
-        }
-    except Exception as e:
-        logger.error(f"pins.get_comments: {e}")
-        return {}

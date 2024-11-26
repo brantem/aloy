@@ -16,9 +16,9 @@ def get_db():
         conn.close()
 
 
-async def get_app_id(aloy_app_id: Annotated[str, Header()]):
+def get_app_id(aloy_app_id: Annotated[str, Header()]):
     return aloy_app_id
 
 
-async def get_user_id(aloy_user_id: Annotated[str, Header()]):
+def get_user_id(aloy_user_id: Annotated[str, Header()]):
     return aloy_user_id

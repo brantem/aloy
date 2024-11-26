@@ -4,7 +4,7 @@ import sqlite3
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, field_validator
 
-from routes.deps import get_app_id, get_db
+from routes import deps
 
 logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/users")
@@ -26,8 +26,8 @@ class CreateUserBody(BaseModel):
 async def get_users(
     body: CreateUserBody,
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    app_id=Depends(get_app_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    app_id=Depends(deps.get_app_id),
 ):
     try:
         sql = """
