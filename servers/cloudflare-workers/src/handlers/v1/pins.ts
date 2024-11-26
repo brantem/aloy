@@ -28,7 +28,7 @@ pins.get('/', async (c) => {
     ORDER BY p.id DESC
   `);
   const { results } = await stmt
-    .bind(c.get('appId'), c.req.query('me') === '1' ? c.get('userId') : '', c.req.query('_path') || '')
+    .bind(c.var.appId, c.req.query('me') === '1' ? c.var.userId : '', c.req.query('_path') || '')
     .all<Omit<Pin, 'app_id' | '_path' | 'completed_by_id'> & { comment_id: number }>();
   if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
@@ -84,12 +84,12 @@ pins.post('/', async (c) => {
     RETURNING id, created_at
   `);
   const pinId = await stmt
-    .bind(c.get('appId'), c.get('userId'), body._path, body.path, body.w, body._x, body.x, body._y, body.y)
+    .bind(c.var.appId, c.var.userId, body._path, body.path, body.w, body._x, body.x, body._y, body.y)
     .first('id');
   if (!pinId) return c.json({ pin: null, error: null }, 500);
 
   const stmt2 = c.env.DB.prepare(`INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id`);
-  const commentId = await stmt2.bind(pinId, c.get('userId'), body.text).first('id');
+  const commentId = await stmt2.bind(pinId, c.var.userId, body.text).first('id');
 
   if (!attachments.length) return c.json({ pin: { id: pinId }, error: null }, 200);
 
@@ -106,7 +106,7 @@ pins.post('/:id/complete', async (c) => {
       SET completed_at = CURRENT_TIMESTAMP, completed_by_id = ?2
       WHERE id = ?1 AND completed_at IS NULL
     `);
-    await stmt.bind(c.req.param('id'), c.get('userId')).run();
+    await stmt.bind(c.req.param('id'), c.var.userId).run();
   } else {
     const stmt = c.env.DB.prepare(`
       UPDATE pins
@@ -120,7 +120,7 @@ pins.post('/:id/complete', async (c) => {
 
 pins.delete('/:id', async (c) => {
   const stmt = c.env.DB.prepare('DELETE FROM pins WHERE id = ? AND user_id = ?');
-  await stmt.bind(c.req.param('id'), c.get('userId')).run();
+  await stmt.bind(c.req.param('id'), c.var.userId).run();
   return c.json({ success: true, error: null }, 200);
 });
 
@@ -171,7 +171,7 @@ pins.post('/:id/comments', async (c) => {
   }
 
   const stmt = c.env.DB.prepare('INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id');
-  const commentId = await stmt.bind(c.req.param('id'), c.get('userId'), body.text).first('id');
+  const commentId = await stmt.bind(c.req.param('id'), c.var.userId, body.text).first('id');
 
   if (!attachments.length) return c.json({ comment: { id: commentId }, error: null }, 200);
 

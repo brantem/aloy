@@ -18,7 +18,7 @@ users.post('/', validator.json(createUserSchema), async (c) => {
     ON CONFLICT (_id, app_id) DO UPDATE SET name = EXCLUDED.name
     RETURNING id
   `);
-  const userId = await stmt.bind(id, c.get('appId'), name).first('id');
+  const userId = await stmt.bind(id, c.var.appId, name).first('id');
   return c.json({ user: { id: userId }, error: null }, 200);
 });
 

@@ -12,7 +12,7 @@ const updateCommentSchema = v.object({
 comments.patch('/:id', validator.json(updateCommentSchema), async (c) => {
   const { text } = await c.req.valid('json');
   const stmt = c.env.DB.prepare('UPDATE comments SET text = ?3 WHERE id = ?1 AND user_id = ?2');
-  await stmt.bind(c.req.param('id'), c.get('userId'), text).run();
+  await stmt.bind(c.req.param('id'), c.var.userId, text).run();
   return c.json({ success: true, error: null }, 200);
 });
 
