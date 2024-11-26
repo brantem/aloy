@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import * as v from 'valibot';
 
-import { UploadAttachmentResult, uploadAttachments } from './attachments';
-import { getUsers, getComments, getAttachments } from './shared';
+import * as schemas from './schemas';
+import * as shared from './shared';
 
 import type { Pin, Comment } from '../../types';
 import * as validator from '../../validator';
@@ -35,9 +35,9 @@ pins.get('/', async (c) => {
   const userIds = [...new Set(results.map((pin) => pin.user_id))];
   const commentIds = [...new Set(results.map((pin) => pin.comment_id))];
   const [users, comments, attachments] = await Promise.all([
-    getUsers(userIds),
-    getComments(commentIds),
-    getAttachments(commentIds),
+    shared.getUsers(userIds),
+    shared.getComments(commentIds),
+    shared.getAttachments(commentIds),
   ]);
 
   const nodes = results.map(({ user_id, ...pin }) => ({
@@ -48,31 +48,20 @@ pins.get('/', async (c) => {
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
-const createPinSchema = v.object({
-  _path: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-  path: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-  w: v.pipe(v.string(), v.transform(Number)),
-  _x: v.pipe(v.string(), v.transform(Number)),
-  x: v.pipe(v.string(), v.transform(Number)),
-  _y: v.pipe(v.string(), v.transform(Number)),
-  y: v.pipe(v.string(), v.transform(Number)),
-  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-});
-
-type CreatePinBody = v.InferInput<typeof createPinSchema> & {
-  attachments: File | File[];
-};
-
 pins.post('/', async (c) => {
+  type CreatePinBody = v.InferInput<typeof schemas.createPin> & {
+    attachments: File | File[];
+  };
+
   const _body = await c.req.parseBody<{ all: true }, CreatePinBody>({ all: true });
 
-  const result = v.safeParse(createPinSchema, _body);
+  const result = v.safeParse(schemas.createPin, _body);
   if (!result.success) return c.json({ pin: null, error: validator.issuesToError(result.issues) }, 200);
   const body = result.output;
 
-  let attachments: UploadAttachmentResult[];
+  let attachments;
   try {
-    attachments = await uploadAttachments(_body.attachments);
+    attachments = await shared.uploadAttachments(_body.attachments);
   } catch (err) {
     if (err === 'INTERNAL_SERVER_ERROR') throw err;
     return c.json({ error: err }, 400);
@@ -137,7 +126,7 @@ pins.get('/:id/comments', async (c) => {
 
   const commentIds = [...new Set(results.map((comment) => comment.id))];
   const userIds = [...new Set(results.map((comment) => comment.user_id))];
-  const [users, attachments] = await Promise.all([getUsers(userIds), getAttachments(commentIds)]);
+  const [users, attachments] = await Promise.all([shared.getUsers(userIds), shared.getAttachments(commentIds)]);
 
   const nodes = results.map(({ user_id, ...comment }) => ({
     ...comment,
@@ -147,24 +136,20 @@ pins.get('/:id/comments', async (c) => {
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
-const createCommentSchema = v.object({
-  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-});
-
-type CreateCommentBody = v.InferInput<typeof createCommentSchema> & {
-  attachments: File | File[];
-};
-
 pins.post('/:id/comments', async (c) => {
+  type CreateCommentBody = v.InferInput<typeof schemas.createComment> & {
+    attachments: File | File[];
+  };
+
   const _body = await c.req.parseBody<{ all: true }, CreateCommentBody>({ all: true });
 
-  const result = v.safeParse(createCommentSchema, _body);
+  const result = v.safeParse(schemas.createComment, _body);
   if (!result.success) return c.json({ comment: null, error: validator.issuesToError(result.issues) }, 200);
   const body = result.output;
 
-  let attachments: UploadAttachmentResult[];
+  let attachments;
   try {
-    attachments = await uploadAttachments(_body.attachments);
+    attachments = await shared.uploadAttachments(_body.attachments);
   } catch (err) {
     if (err === 'INTERNAL_SERVER_ERROR') throw err;
     return c.json({ error: err }, 400);

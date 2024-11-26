@@ -1,15 +1,12 @@
 import { Hono } from 'hono';
-import * as v from 'valibot';
+
+import * as schemas from './schemas';
 
 import * as validator from '../../validator';
 
 const comments = new Hono<Env>();
 
-const updateCommentSchema = v.object({
-  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-});
-
-comments.patch('/:id', validator.json(updateCommentSchema), async (c) => {
+comments.patch('/:id', validator.json(schemas.updateComment), async (c) => {
   const { text } = await c.req.valid('json');
   const stmt = c.env.DB.prepare('UPDATE comments SET text = ?3 WHERE id = ?1 AND user_id = ?2');
   await stmt.bind(c.req.param('id'), c.var.userId, text).run();
