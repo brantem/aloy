@@ -1,7 +1,7 @@
 {
   "name": "@aloy/cloudflare-workers",
   "scripts": {
-    "dev": "wrangler dev --remote",
+    "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface Bindings",
     "test": "vitest"

@@ -46,6 +46,7 @@ describe('/pins', () => {
     await env.DB.exec(`
       INSERT INTO pins VALUES (1, 'test', 1, '/', 'body', 1, 0, 0, 0, 0, CURRENT_TIME, NULL, NULL);
       INSERT INTO comments VALUES (1, 1, 1, 'a', CURRENT_TIME, CURRENT_TIME);
+      INSERT INTO attachments VALUES (1, 1, 'a.png', '{"type":"image/png"}');
     `);
 
     const res2 = await app.request('/pins', {}, env);
@@ -62,6 +63,15 @@ describe('/pins', () => {
           comment: expect.objectContaining({
             id: 1,
             text: 'a',
+            attachments: [
+              {
+                id: 1,
+                url: 'a.png',
+                data: {
+                  type: 'image/png',
+                },
+              },
+            ],
           }),
           path: 'body',
           w: 1,
@@ -183,7 +193,10 @@ describe('/pins/:id', () => {
     expect(res.headers.get('X-Total-Count')).toBe('0');
     expect(await res.json()).toEqual({ nodes: [], error: null });
 
-    await env.DB.exec("INSERT INTO comments VALUES (2, 1, 1, 'b', CURRENT_TIME, CURRENT_TIME);");
+    await env.DB.exec(`
+      INSERT INTO comments VALUES (2, 1, 1, 'b', CURRENT_TIME, CURRENT_TIME);
+      INSERT INTO attachments VALUES (1, 2, 'a.png', '{"type":"image/png"}');
+    `);
 
     const res2 = await app.request('/pins/1/comments', {}, env);
     expect(res2.status).toBe(200);
@@ -197,6 +210,15 @@ describe('/pins/:id', () => {
             name: 'User 1',
           },
           text: 'b',
+          attachments: [
+            {
+              id: 1,
+              url: 'a.png',
+              data: {
+                type: 'image/png',
+              },
+            },
+          ],
         }),
       ],
       error: null,

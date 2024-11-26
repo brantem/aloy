@@ -1,20 +1,27 @@
 import { Hono } from 'hono';
-import { getContext } from 'hono/context-storage';
 import * as v from 'valibot';
 
 import { UploadAttachmentResult, uploadAttachments } from './attachments';
+import { getUsers, getComments, getAttachments } from './shared';
 
-import type { User, Pin, Comment } from '../../types';
+import type { Pin, Comment } from '../../types';
 import * as validator from '../../validator';
 
 const pins = new Hono<Env>();
 
 pins.get('/', async (c) => {
   const stmt = c.env.DB.prepare(`
+    WITH t AS (
+		  SELECT id, pin_id
+		  FROM comments
+		  GROUP BY pin_id
+		  HAVING MIN(created_at)
+		)
     SELECT
-      p.id, p.user_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
+      p.id, p.user_id, t.id AS comment_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
       (SELECT COUNT(c.id)-1 FROM comments c WHERE c.pin_id = p.id) AS total_replies
     FROM pins p
+		JOIN t ON t.pin_id = p.id
     WHERE p.app_id = ?1
       AND CASE WHEN ?2 != '' THEN p.user_id = ?2 ELSE TRUE END
       AND CASE WHEN ?3 != '' THEN p._path = ?3 ELSE TRUE END
@@ -22,18 +29,22 @@ pins.get('/', async (c) => {
   `);
   const { results } = await stmt
     .bind(c.get('appId'), c.req.query('me') === '1' ? c.get('userId') : '', c.req.query('_path') || '')
-    .all<Omit<Pin, 'app_id' | '_path' | 'completed_by_id'> & { text: string }>();
+    .all<Omit<Pin, 'app_id' | '_path' | 'completed_by_id'> & { comment_id: number }>();
   if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
-  const pinIds = [];
-  const userIds = [];
-  for (const pin of results) {
-    pinIds.push(pin.id);
-    userIds.push(pin.user_id);
-  }
-  const [users, comments] = await Promise.all([getUsers(userIds), getRootComments(pinIds)]);
+  const userIds = [...new Set(results.map((pin) => pin.user_id))];
+  const commentIds = [...new Set(results.map((pin) => pin.comment_id))];
+  const [users, comments, attachments] = await Promise.all([
+    getUsers(userIds),
+    getComments(commentIds),
+    getAttachments(commentIds),
+  ]);
 
-  const nodes = results.map(({ user_id, ...pin }) => ({ ...pin, user: users[user_id], comment: comments[pin.id] }));
+  const nodes = results.map(({ user_id, ...pin }) => ({
+    ...pin,
+    user: users[user_id],
+    comment: { ...comments[pin.comment_id], attachments: attachments[pin.comment_id] || [] },
+  }));
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
@@ -124,10 +135,15 @@ pins.get('/:id/comments', async (c) => {
   const { results } = await stmt.bind(c.req.param('id')).all<Omit<Comment, 'pin_id'>>();
   if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
+  const commentIds = [...new Set(results.map((comment) => comment.id))];
   const userIds = [...new Set(results.map((comment) => comment.user_id))];
-  const users = await getUsers(userIds);
+  const [users, attachments] = await Promise.all([getUsers(userIds), getAttachments(commentIds)]);
 
-  const nodes = results.map(({ user_id, ...comment }) => ({ ...comment, user: users[user_id] }));
+  const nodes = results.map(({ user_id, ...comment }) => ({
+    ...comment,
+    user: users[user_id],
+    attachments: attachments[comment.id] || [],
+  }));
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
@@ -166,31 +182,3 @@ pins.post('/:id/comments', async (c) => {
 });
 
 export default pins;
-
-const getUsers = async (ids: string[]) => {
-  const stmt = getContext<Env>().env.DB.prepare(`
-    SELECT id, name
-    FROM users
-    WHERE id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
-  `);
-  return (await stmt.bind(...ids).all<User>()).results.reduce(
-    (users, user) => ({ ...users, [user.id]: user }),
-    {} as { [id: string]: User },
-  );
-};
-
-const getRootComments = async (ids: number[]) => {
-  type Row = Pick<Comment, 'id' | 'pin_id' | 'text' | 'created_at' | 'updated_at'>;
-
-  const stmt = getContext<Env>().env.DB.prepare(`
-    SELECT id, pin_id, text, created_at, updated_at
-    FROM comments
-    WHERE pin_id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
-    GROUP BY pin_id
-    HAVING MIN(created_at)
-  `);
-  return (await stmt.bind(...ids).all<Row>()).results.reduce(
-    (comments, { pin_id, ...comment }) => ({ ...comments, [pin_id]: comment }),
-    {} as { [id: string]: Omit<Row, 'pin_id'> },
-  );
-};
