@@ -12,7 +12,6 @@ import (
 	"mime/multipart"
 	"path/filepath"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/brantem/aloy/errs"
@@ -40,28 +39,23 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 	m := make(map[string]*multipart.FileHeader, len(form.File))
 	me := make(errs.MapErrors, len(form.File))
 
-	for key, files := range form.File {
-		if !strings.HasPrefix(key, "attachments") {
-			continue
-		}
-
+	for i, fh := range form.File["attachments"] {
 		if len(m) >= h.config.attachmentMaxCount {
 			return nil, errs.MapErrors{"attachments": errs.NewCodeError("TOO_MANY")}
 		}
 
-		fh := files[0]
 		if fh.Size > int64(h.config.attachmentMaxSize) {
-			me[key] = errs.NewCodeError("TOO_BIG")
+			me[fmt.Sprintf("attachments.%d", i)] = errs.NewCodeError("TOO_BIG")
 			continue
 		}
 
 		_type := fh.Header.Get("Content-Type")
 		if !slices.Contains(h.config.attachmentSupportedTypes, _type) {
-			me[key] = errs.NewCodeError("UNSUPPORTED")
+			me[fmt.Sprintf("attachments.%d", i)] = errs.NewCodeError("UNSUPPORTED")
 			continue
 		}
 
-		m[key] = fh
+		m[fmt.Sprintf("attachments.%d", i)] = fh
 	}
 
 	if len(me) != 0 {

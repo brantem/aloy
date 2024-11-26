@@ -96,10 +96,10 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+		attachment1 := testutil.CreateFormFile(writer, "attachments", "a.png", "image/png")
 		png.Encode(attachment1, img)
 
-		attachment2 := testutil.CreateFormFile(writer, "attachments.2", "b.png", "image/png")
+		attachment2 := testutil.CreateFormFile(writer, "attachments", "b.png", "image/png")
 		png.Encode(attachment2, img)
 
 		writer.Close()
@@ -126,7 +126,7 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+		attachment1 := testutil.CreateFormFile(writer, "attachments", "a.png", "image/png")
 		png.Encode(attachment1, image.NewRGBA(image.Rect(0, 0, 100, 100)))
 
 		writer.Close()
@@ -136,7 +136,7 @@ func Test_uploadAttachments(t *testing.T) {
 
 		resp, _ := app.Test(req)
 		body, _ := io.ReadAll(resp.Body)
-		assert.Equal(`{"attachments.1":"TOO_BIG"}`, string(body))
+		assert.Equal(`{"attachments.0":"TOO_BIG"}`, string(body))
 	})
 
 	t.Run("UNSUPPORTED", func(t *testing.T) {
@@ -153,7 +153,7 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.txt", "text/plain")
+		attachment1 := testutil.CreateFormFile(writer, "attachments", "a.txt", "text/plain")
 		attachment1.Write([]byte("a"))
 
 		writer.Close()
@@ -163,7 +163,7 @@ func Test_uploadAttachments(t *testing.T) {
 
 		resp, _ := app.Test(req)
 		body, _ := io.ReadAll(resp.Body)
-		assert.Equal(`{"attachments.1":"UNSUPPORTED"}`, string(body))
+		assert.Equal(`{"attachments.0":"UNSUPPORTED"}`, string(body))
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -187,7 +187,7 @@ func Test_uploadAttachments(t *testing.T) {
 		buf := &bytes.Buffer{}
 		writer := multipart.NewWriter(buf)
 
-		attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+		attachment1 := testutil.CreateFormFile(writer, "attachments", "a.png", "image/png")
 		png.Encode(attachment1, img)
 
 		writer.Close()

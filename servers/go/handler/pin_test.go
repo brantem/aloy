@@ -135,7 +135,7 @@ func Test_createPin(t *testing.T) {
 		field.Write([]byte(v))
 	}
 
-	attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+	attachment1 := testutil.CreateFormFile(writer, "attachments", "a.png", "image/png")
 	png.Encode(attachment1, img)
 
 	writer.Close()
@@ -308,7 +308,7 @@ func Test_createComment(t *testing.T) {
 	text, _ := writer.CreateFormField("text")
 	text.Write([]byte(" Test "))
 
-	attachment1 := testutil.CreateFormFile(writer, "attachments.1", "a.png", "image/png")
+	attachment1 := testutil.CreateFormFile(writer, "attachments", "a.png", "image/png")
 	png.Encode(attachment1, img)
 
 	writer.Close()

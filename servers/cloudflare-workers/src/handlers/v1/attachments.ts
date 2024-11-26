@@ -6,39 +6,39 @@ export type UploadAttachmentResult = {
   data: Record<string, string>;
 };
 
-export const uploadAttachments = async (attachments: Record<string, File> = {}): Promise<UploadAttachmentResult[]> => {
+export const uploadAttachments = async (files: File | File[] = []): Promise<UploadAttachmentResult[]> => {
+  if (!Array.isArray(files)) files = [files];
+
   const c = getContext<Env>();
   const config = c.var.config;
 
-  const keys = Object.keys(attachments);
-  if (!keys.length) return [];
-  if (keys.length > config.attachmentMaxCount) throw { attachments: 'TOO_MANY' };
+  if (!files.length) return [];
+  if (files.length > config.attachmentMaxCount) throw { attachments: 'TOO_MANY' };
 
-  const _keys = [];
+  const selected = [];
   const me: Record<string, string> = {};
-  for (const key of keys) {
-    const file = attachments[key];
-
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     if (file.size > config.attachmentMaxSize) {
-      me[`attachments.${key}`] = 'TOO_BIG';
+      me[`attachments.${i}`] = 'TOO_BIG';
       continue;
     }
 
     if (!config.attachmentSupportedTypes.includes(file.type)) {
-      me[`attachments.${key}`] = 'UNSUPPORTED';
+      me[`attachments.${i}`] = 'UNSUPPORTED';
       continue;
     }
 
-    _keys.push(key);
+    selected.push(i);
   }
 
   if (Object.keys(me).length) throw me;
-  if (!_keys.length) return [];
+  if (!selected.length) return [];
 
   const result: UploadAttachmentResult[] = [];
-  for await (const key of _keys) {
+  for await (const i of selected) {
     try {
-      const file = attachments[key];
+      const file = files[i];
       const _key = `attachments/${Date.now()}${path.extname(file.name)}`;
       await c.env.Bucket.put(_key, file);
       result.push({

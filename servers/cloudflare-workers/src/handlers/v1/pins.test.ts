@@ -99,7 +99,7 @@ describe('/pins', () => {
     formData.append('_y', '0');
     formData.append('y', '0');
     formData.append('text', ' a ');
-    formData.append('attachments.1', new File(['a'], 'a.txt', { type: 'text/plain' }));
+    formData.append('attachments', new File(['a'], 'a.txt', { type: 'text/plain' }));
 
     const res = await app.request('/pins', { method: 'POST', body: formData }, env);
     expect(await env.DB.prepare('SELECT * FROM pins').first()).toEqual(
@@ -232,7 +232,7 @@ describe('/pins/:id', () => {
 
     const formData = new FormData();
     formData.append('text', ' b ');
-    formData.append('attachments.1', new File(['a'], 'a.txt', { type: 'text/plain' }));
+    formData.append('attachments', new File(['a'], 'a.txt', { type: 'text/plain' }));
 
     const res = await app.request('/pins/1/comments', { method: 'POST', body: formData }, env);
 

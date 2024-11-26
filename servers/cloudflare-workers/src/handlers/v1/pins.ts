@@ -60,11 +60,11 @@ const createPinSchema = v.object({
 });
 
 type CreatePinBody = v.InferInput<typeof createPinSchema> & {
-  attachments: Record<string, File>;
+  attachments: File | File[];
 };
 
 pins.post('/', async (c) => {
-  const _body = await c.req.parseBody<{ dot: true }, CreatePinBody>({ dot: true });
+  const _body = await c.req.parseBody<{ all: true }, CreatePinBody>({ all: true });
 
   const result = v.safeParse(createPinSchema, _body);
   if (!result.success) return c.json({ pin: null, error: validator.issuesToError(result.issues) }, 200);
@@ -152,11 +152,11 @@ const createCommentSchema = v.object({
 });
 
 type CreateCommentBody = v.InferInput<typeof createCommentSchema> & {
-  attachments: Record<string, File>;
+  attachments: File | File[];
 };
 
 pins.post('/:id/comments', async (c) => {
-  const _body = await c.req.parseBody<{ dot: true }, CreateCommentBody>({ dot: true });
+  const _body = await c.req.parseBody<{ all: true }, CreateCommentBody>({ all: true });
 
   const result = v.safeParse(createCommentSchema, _body);
   if (!result.success) return c.json({ comment: null, error: validator.issuesToError(result.issues) }, 200);

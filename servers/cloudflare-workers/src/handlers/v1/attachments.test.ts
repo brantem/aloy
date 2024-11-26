@@ -19,9 +19,9 @@ describe('uploadAttachments', () => {
     await next();
   });
   app.post('/', async (c) => {
-    const body = await c.req.parseBody<{ dot: true }, { attachments: Record<string, File> }>({ dot: true });
+    const body = await c.req.parseBody<{ all: true }, { attachments: File[] }>({ all: true });
     try {
-      const result = await uploadAttachments(body.attachments || {});
+      const result = await uploadAttachments(body.attachments);
       return c.json(result);
     } catch (err) {
       return c.json(err as any);
@@ -45,8 +45,8 @@ describe('uploadAttachments', () => {
 
   test('TOO_MANY', async () => {
     const formData = new FormData();
-    formData.append('attachments.1', new File(['a'], 'a.txt', { type: 'text/plain' }));
-    formData.append('attachments.2', new File(['b'], 'b.txt', { type: 'text/plain' }));
+    formData.append('attachments', new File(['a'], 'a.txt', { type: 'text/plain' }));
+    formData.append('attachments', new File(['b'], 'b.txt', { type: 'text/plain' }));
 
     const res = await app.request('/', { method: 'POST', body: formData }, env);
     expect(await res.json()).toEqual({ attachments: 'TOO_MANY' });
@@ -54,23 +54,23 @@ describe('uploadAttachments', () => {
 
   test('TOO_BIG', async () => {
     const formData = new FormData();
-    formData.append('attachments.1', new File(['ab'], 'a.txt', { type: 'text/plain' }));
+    formData.append('attachments', new File(['ab'], 'a.txt', { type: 'text/plain' }));
 
     const res = await app.request('/', { method: 'POST', body: formData }, env);
-    expect(await res.json()).toEqual({ 'attachments.1': 'TOO_BIG' });
+    expect(await res.json()).toEqual({ 'attachments.0': 'TOO_BIG' });
   });
 
   test('UNSUPPORTED', async () => {
     const formData = new FormData();
-    formData.append('attachments.1', new File(['a'], 'a.png', { type: 'image/png' }));
+    formData.append('attachments', new File(['a'], 'a.png', { type: 'image/png' }));
 
     const res = await app.request('/', { method: 'POST', body: formData }, env);
-    expect(await res.json()).toEqual({ 'attachments.1': 'UNSUPPORTED' });
+    expect(await res.json()).toEqual({ 'attachments.0': 'UNSUPPORTED' });
   });
 
   test('success', async () => {
     const formData = new FormData();
-    formData.append('attachments.1', new File(['a'], 'a.txt', { type: 'text/plain' }));
+    formData.append('attachments', new File(['a'], 'a.txt', { type: 'text/plain' }));
 
     const res = await app.request('/', { method: 'POST', body: formData }, env);
     const result = ((await res.json()) as UploadAttachmentResult[])[0];
