@@ -17,10 +17,17 @@ comments.patch('/:id', validator.json(updateCommentSchema), async (c) => {
 });
 
 comments.delete('/:id', async (c) => {
-  // TODO: delete all attachments
+  const commentId = c.req.param('id');
 
-  const stmt = c.env.DB.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?');
-  await stmt.bind(c.req.param('id'), c.get('userId')).run();
+  const stmt = c.env.DB.prepare(`SELECT url FROM attachments WHERE id = ?`);
+  const { results } = await stmt.bind(commentId).all<{ url: string }>();
+  const keys = results.map((attachment) => attachment.url.replace(c.var.config.assetsBaseUrl + '/', ''));
+
+  await Promise.all([
+    c.env.DB.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?').bind(commentId, c.var.userId).run(),
+    c.env.Bucket.delete(keys),
+  ]);
+
   return c.json({ success: true, error: null }, 200);
 });
 
