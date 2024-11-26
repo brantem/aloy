@@ -47,12 +47,11 @@ func New(ctx context.Context) *Storage {
 }
 
 type UploadOpts struct {
-	Key                string
-	Body               io.Reader
-	ContentType        string
-	CacheControl       string
-	ContentDisposition string
-	ContentLength      int64
+	Key           string
+	Body          io.Reader
+	ContentType   string
+	CacheControl  string
+	ContentLength int64
 }
 
 func (s *Storage) Upload(ctx context.Context, opts *UploadOpts) error {
@@ -68,10 +67,6 @@ func (s *Storage) Upload(ctx context.Context, opts *UploadOpts) error {
 		CacheControl:  aws.String(opts.CacheControl),
 		ContentLength: aws.Int64(opts.ContentLength),
 	}
-	if opts.ContentDisposition != "" {
-		input.ContentDisposition = aws.String(opts.ContentDisposition)
-	}
-
 	if _, err := s.client.PutObject(ctx, input); err != nil {
 		log.Error().Err(err).Msg("storage.Upload")
 		return errs.ErrInternalServerError
