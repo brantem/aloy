@@ -4,7 +4,13 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["fastapi>=0.115.4", "fastapi-cli>=0.0.5", "uvicorn>=0.32.0"]
+dependencies = [
+  "fastapi>=0.115.4",
+  "fastapi-cli>=0.0.5",
+  "uvicorn>=0.32.0",
+  "boto3>=1.35.69",
+  "boto3-stubs[s3]>=1.35.69",
+]
 
 [dependency-groups]
 dev = ["coverage>=7.6.4", "httpx>=0.27.2", "pytest>=8.3.3"]
