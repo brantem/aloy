@@ -6,7 +6,9 @@ from anyio import Path
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, field_validator
 
+import constants
 from routes import deps
+from storage import Storage
 
 logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/comments", dependencies=[Depends(deps.get_user_id)])
@@ -45,10 +47,17 @@ def delete_comment(
     response: Response,
     comment_id: Annotated[int, Path()],
     db: sqlite3.Connection = Depends(deps.get_db),
+    storage: Storage = Depends(deps.get_storage),
     user_id=Depends(deps.get_user_id),
 ):
     try:
+        attachments = db.execute("SELECT url FROM attachments WHERE comment_id = ?", (comment_id,)).fetchall()
+        keys = [attachment["url"].removeprefix(constants.ASSETS_BASE_URL + "/") for attachment in attachments]
+
         db.execute("DELETE FROM comments WHERE id = ? AND user_id = ?", (comment_id, user_id))
+        if len(keys) > 0:
+            storage.delete(keys)
+
         return {"success": True, "error": None}
     except Exception as e:
         logger.error(f"comments.delete_comment: {e}")
