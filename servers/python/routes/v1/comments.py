@@ -25,9 +25,9 @@ class UpdateCommentBody(BaseModel):
 
 @router.patch("/{comment_id}")
 def update_comment(
+    response: Response,
     comment_id: Annotated[int, Path()],
     body: UpdateCommentBody,
-    response: Response,
     db: sqlite3.Connection = Depends(deps.get_db),
     user_id=Depends(deps.get_user_id),
 ):
@@ -42,8 +42,8 @@ def update_comment(
 
 @router.delete("/{comment_id}")
 def delete_comment(
-    comment_id: Annotated[int, Path()],
     response: Response,
+    comment_id: Annotated[int, Path()],
     db: sqlite3.Connection = Depends(deps.get_db),
     user_id=Depends(deps.get_user_id),
 ):

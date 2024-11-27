@@ -24,8 +24,8 @@ class CreateUserBody(BaseModel):
 
 @router.post("/")
 async def get_users(
-    body: CreateUserBody,
     response: Response,
+    body: CreateUserBody,
     db: sqlite3.Connection = Depends(deps.get_db),
     app_id=Depends(deps.get_app_id),
 ):

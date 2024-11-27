@@ -1,12 +1,16 @@
+import json
 import logging
 import sqlite3
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Response, status
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Request, Response, UploadFile, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from pypika import Query, Table
 
 from routes import deps
 from routes.v1 import shared
+from storage import Storage
 
 logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/pins", dependencies=[Depends(deps.get_user_id)])
@@ -84,13 +88,23 @@ class CreatePinBody(BaseModel):
 
 @router.post("/")
 async def create_pin(
-    body: CreatePinBody,
+    request: Request,
     response: Response,
+    attachments: list[UploadFile] | None = None,
     db: sqlite3.Connection = Depends(deps.get_db),
+    storage: Storage = Depends(deps.get_storage),
     app_id=Depends(deps.get_app_id),
     user_id=Depends(deps.get_user_id),
 ):
     try:
+        form_data = await request.form()
+        body = CreatePinBody.model_validate(dict(form_data))
+    except ValidationError as e:
+        raise RequestValidationError(e.errors())
+
+    try:
+        upload_attachment_results = shared.upload_attachments(storage, attachments)
+
         sql = """
             INSERT INTO pins (app_id, user_id, _path, path, w, _x, x, _y, y)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -109,11 +123,20 @@ async def create_pin(
         )
         pin = db.execute(sql, params).fetchone()
 
-        sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?)"
-        db.execute(sql, (pin["id"], user_id, body.text))
+        sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id"
+        comment = db.execute(sql, (pin["id"], user_id, body.text)).fetchone()
+
+        if len(upload_attachment_results) > 0:
+            q = Query.into(Table("attachments")).columns("comment_id", "url", "data")
+            for result in upload_attachment_results:
+                q = q.insert(comment["id"], result["url"], json.dumps(result["data"]))
+            db.execute(q.get_sql())
 
         db.commit()
         return {"pin": {"id": pin["id"]}, "error": None}
+    except HTTPException as e:
+        response.status_code = e.status_code
+        return {"comment": None, "error": e.detail}
     except Exception as e:
         logger.error(f"pins.create_pin: {e}")
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -122,8 +145,8 @@ async def create_pin(
 
 @router.post("/{pin_id}/complete")
 def complete_pin(
-    pin_id: Annotated[int, Path()],
     response: Response,
+    pin_id: Annotated[int, Path()],
     body: str = Body(default=""),
     db: sqlite3.Connection = Depends(deps.get_db),
     user_id=Depends(deps.get_user_id),
@@ -158,8 +181,8 @@ def complete_pin(
 
 @router.delete("/{pin_id}")
 def delete_pin(
-    pin_id: Annotated[int, Path()],
     response: Response,
+    pin_id: Annotated[int, Path()],
     db: sqlite3.Connection = Depends(deps.get_db),
     user_id=Depends(deps.get_user_id),
 ):
@@ -174,8 +197,8 @@ def delete_pin(
 
 @router.get("/{pin_id}/comments")
 def get_pin_comments(
-    pin_id: Annotated[int, Path()],
     response: Response,
+    pin_id: Annotated[int, Path()],
     db: sqlite3.Connection = Depends(deps.get_db),
 ):
     try:
@@ -220,17 +243,38 @@ class CreateCommentBody(BaseModel):
 
 
 @router.post("/{pin_id}/comments")
-def create_comment(
-    pin_id: Annotated[int, Path()],
-    body: CreateCommentBody,
+async def create_comment(
+    request: Request,
     response: Response,
+    pin_id: Annotated[int, Path()],
+    attachments: list[UploadFile] | None = None,
     db: sqlite3.Connection = Depends(deps.get_db),
+    storage: Storage = Depends(deps.get_storage),
     user_id=Depends(deps.get_user_id),
 ):
     try:
+        form_data = await request.form()
+        body = CreateCommentBody.model_validate(dict(form_data))
+    except ValidationError as e:
+        raise RequestValidationError(e.errors())
+
+    try:
+        upload_attachment_results = shared.upload_attachments(storage, attachments)
+
         sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id"
         comment = db.execute(sql, (pin_id, user_id, body.text)).fetchone()
+
+        if len(upload_attachment_results) > 0:
+            q = Query.into(Table("attachments")).columns("comment_id", "url", "data")
+            for result in upload_attachment_results:
+                q = q.insert(comment["id"], result["url"], json.dumps(result["data"]))
+            db.execute(q.get_sql())
+
+        db.commit()
         return {"comment": {"id": comment["id"]}, "error": None}
+    except HTTPException as e:
+        response.status_code = e.status_code
+        return {"comment": None, "error": e.detail}
     except Exception as e:
         logger.error(f"pins.create_comment: {e}")
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
