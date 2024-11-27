@@ -68,7 +68,7 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 		return nil, nil
 	}
 
-	result := make([]*UploadAttachmentResult, 0, len(m))
+	results := make([]*UploadAttachmentResult, 0, len(m))
 	for key, fh := range m {
 		_type := fh.Header.Get("Content-Type")
 
@@ -100,7 +100,7 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 			return nil, errs.ErrInternalServerError
 		}
 
-		result = append(result, &UploadAttachmentResult{
+		results = append(results, &UploadAttachmentResult{
 			URL: fmt.Sprintf("%s/%s", h.config.assetsBaseURL, opts.Key),
 			Data: map[string]string{
 				"type": _type,
@@ -109,7 +109,7 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 		})
 	}
 
-	return result, nil
+	return results, nil
 }
 
 func (h *Handler) getAttachments(ctx context.Context, commentIds []int) (map[int][]*model.Attachment, error) {

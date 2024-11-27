@@ -37,13 +37,13 @@ export const uploadAttachments = async (files: File | File[] = []): Promise<Uplo
   if (Object.keys(me).length) throw me;
   if (!selected.length) return [];
 
-  const result: UploadAttachmentResult[] = [];
+  const results: UploadAttachmentResult[] = [];
   for await (const i of selected) {
     try {
       const file = files[i];
       const _key = `attachments/${Date.now()}${path.extname(file.name)}`;
       await c.env.Bucket.put(_key, file);
-      result.push({
+      results.push({
         url: `${config.assetsBaseUrl}/${_key}`,
         data: { type: file.type },
       });
@@ -52,7 +52,7 @@ export const uploadAttachments = async (files: File | File[] = []): Promise<Uplo
     }
   }
 
-  return result;
+  return results;
 };
 
 export const getAttachments = async (ids: number[]) => {
