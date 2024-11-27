@@ -31,13 +31,20 @@ def get_pins(
 
     try:
         sql = """
+            WITH t AS (
+              SELECT id, pin_id
+              FROM comments
+              GROUP BY pin_id
+              HAVING MIN(created_at)
+            )
             SELECT
-                p.id, p.user_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
-                (SELECT COUNT(c.id)-1 FROM comments c WHERE c.pin_id = p.id) AS total_replies
+              p.id, p.user_id, t.id AS comment_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
+              (SELECT COUNT(c.id)-1 FROM comments c WHERE c.pin_id = p.id) AS total_replies
             FROM pins p
+            JOIN t ON t.pin_id = p.id
             WHERE p.app_id = ?
-                AND CASE WHEN ? IS NOT NULL THEN p.user_id = ? ELSE TRUE END
-                AND CASE WHEN ? IS NOT NULL THEN p._path = ? ELSE TRUE END
+              AND CASE WHEN ? IS NOT NULL THEN p.user_id = ? ELSE TRUE END
+              AND CASE WHEN ? IS NOT NULL THEN p._path = ? ELSE TRUE END
             ORDER BY p.id DESC
         """
         pins = db.execute(sql, (app_id, user_id, user_id, _path, _path)).fetchall()
@@ -51,14 +58,20 @@ def get_pins(
         user_ids = [pin["user_id"] for pin in pins]
         users = shared.get_users(db, user_ids)
 
-        pin_ids = [pin["id"] for pin in pins]
-        comments = shared.get_comments(db, pin_ids)
+        comment_ids = [pin["comment_id"] for pin in pins]
+        comments = shared.get_comments(db, comment_ids)
+        attachments = shared.get_attachments(db, comment_ids)
 
         for node in nodes:
             node["user"] = users.get(node["user_id"])
             del node["user_id"]
 
-            node["comment"] = comments.get(node["id"])
+            node["comment"] = comments.get(node["comment_id"])
+            if node["comment"] is not None:
+                node["comment"]["attachments"] = attachments.get(node["comment_id"])
+                if node["comment"]["attachments"] is None:
+                    node["comment"]["attachments"] = []
+            del node["comment_id"]
 
         response.headers["X-Total-Count"] = str(len(nodes))
         return {"nodes": nodes, "error": None}
@@ -158,7 +171,7 @@ def complete_pin(
                     UPDATE pins
                     SET completed_at = CURRENT_TIMESTAMP, completed_by_id = ?
                     WHERE id = ?
-                        AND completed_at IS NULL
+                      AND completed_at IS NULL
                 """,
                 (user_id, pin_id),
             )
@@ -168,7 +181,7 @@ def complete_pin(
                     UPDATE pins
                     SET completed_at = NULL, completed_by_id = NULL
                     WHERE id = ?
-                        AND completed_at IS NOT NULL
+                      AND completed_at IS NOT NULL
                 """,
                 (pin_id,),
             )
@@ -219,9 +232,17 @@ def get_pin_comments(
         user_ids = [comment["user_id"] for comment in nodes]
         users = shared.get_users(db, user_ids)
 
+        comment_ids = [comment["id"] for comment in nodes]
+        attachments = shared.get_attachments(db, comment_ids)
+
         for node in nodes:
             node["user"] = users.get(node["user_id"])
             del node["user_id"]
+
+            node["attachments"] = attachments.get(node["id"])
+            if node["attachments"] is None:
+                node["attachments"] = []
+            del node["id"]
 
         response.headers["X-Total-Count"] = str(len(nodes))
         return {"nodes": nodes, "error": None}
