@@ -1,9 +1,7 @@
 import os
-from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Header
-from humanfriendly import parse_size
 
 import db
 from storage import Storage
@@ -21,25 +19,6 @@ def get_db():
 
 def get_storage():
     return Storage()
-
-
-@dataclass
-class Config:
-    assets_base_url: str
-
-    attachment_max_count: int
-    attachment_max_size: int
-    attachment_supported_types: list[str]
-
-
-def get_config():
-    attachment_supported_types = os.getenv("ATTACHMENT_SUPPORTED_TYPES", "image/gif,image/jpeg,image/png,image/webp")
-    return Config(
-        assets_base_url=os.getenv("ASSETS_BASE_URL", ""),
-        attachment_max_count=int(os.getenv("ATTACHMENT_MAX_COUNT", "3")),
-        attachment_max_size=parse_size(os.getenv("ATTACHMENT_MAX_SIZE", "100kb")),
-        attachment_supported_types=attachment_supported_types.split(","),
-    )
 
 
 def get_app_id(aloy_app_id: Annotated[str, Header()]):

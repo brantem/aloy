@@ -3,12 +3,12 @@ import logging
 import os
 import sqlite3
 import time
-from typing import TypedDict
+from dataclasses import dataclass
 
 import thumbhash
 from fastapi import HTTPException, UploadFile
 
-from routes.deps import get_config
+import constants
 from storage import Storage
 
 logger = logging.getLogger("uvicorn.error")
@@ -38,7 +38,8 @@ def get_comments(db: sqlite3.Connection, comment_ids: list[int]):
         return {}
 
 
-class UploadAttachmentResult(TypedDict):
+@dataclass
+class UploadAttachmentResult:
     url: str
     data: dict[str, str]
 
@@ -47,16 +48,14 @@ def upload_attachments(storage: Storage, files: list[UploadFile] | None):
     if files is None or len(files) < 1:
         return []
 
-    config = get_config()
-
-    if len(files) > config.attachment_max_count:
+    if len(files) > constants.ATTACHMENT_MAX_COUNT:
         raise HTTPException(status_code=400, detail={"attachments": "TOO_MANY"})
 
     results: list[UploadAttachmentResult] = []
     error = {}
 
     for i, attachment in enumerate(files):
-        if attachment.size is not None and attachment.size > config.attachment_max_size:
+        if attachment.size is not None and attachment.size > constants.ATTACHMENT_MAX_SIZE:
             error[f"attachments.{i}"] = "TOO_BIG"
             continue
 
@@ -64,19 +63,19 @@ def upload_attachments(storage: Storage, files: list[UploadFile] | None):
         if attachment.content_type is not None:
             content_type = attachment.content_type
 
-        if content_type not in config.attachment_supported_types:
+        if content_type not in constants.ATTACHMENT_SUPPORTED_TYPES:
             error[f"attachments.{i}"] = "UNSUPPORTED"
             continue
 
         key = f"attachments/{int(time.time() * 1000)}{os.path.splitext(attachment.filename or "")[1]}"
         results.append(
-            {
-                "url": f"{config.assets_base_url}/{key}",
-                "data": {
+            UploadAttachmentResult(
+                f"{constants.ASSETS_BASE_URL}/{key}",
+                {
                     "type": content_type,
                     "hash": thumbhash.image_to_thumbhash(attachment.file),
                 },
-            }
+            )
         )
 
         attachment.file.seek(0)

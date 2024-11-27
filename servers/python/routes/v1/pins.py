@@ -142,7 +142,7 @@ async def create_pin(
         if len(upload_attachment_results) > 0:
             q = Query.into(Table("attachments")).columns("comment_id", "url", "data")
             for result in upload_attachment_results:
-                q = q.insert(comment["id"], result["url"], json.dumps(result["data"]))
+                q = q.insert(comment["id"], result.url, json.dumps(result.data))
             db.execute(q.get_sql())
 
         db.commit()
@@ -242,7 +242,6 @@ def get_pin_comments(
             node["attachments"] = attachments.get(node["id"])
             if node["attachments"] is None:
                 node["attachments"] = []
-            del node["id"]
 
         response.headers["X-Total-Count"] = str(len(nodes))
         return {"nodes": nodes, "error": None}
@@ -288,7 +287,7 @@ async def create_comment(
         if len(upload_attachment_results) > 0:
             q = Query.into(Table("attachments")).columns("comment_id", "url", "data")
             for result in upload_attachment_results:
-                q = q.insert(comment["id"], result["url"], json.dumps(result["data"]))
+                q = q.insert(comment["id"], result.url, json.dumps(result.data))
             db.execute(q.get_sql())
 
         db.commit()
