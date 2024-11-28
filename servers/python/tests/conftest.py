@@ -1,11 +1,19 @@
+import os
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from moto import mock_aws
 
 import db as _db
 from routes.deps import get_db, get_user_id
 from server import app
+from storage.storage import Storage
+
+os.environ["STORAGE_ENDPOINT"] = os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "https://abc.r2.cloudflarestorage.com"
+os.environ["STORAGE_ACCESS_KEY_ID"] = "def"
+os.environ["STORAGE_ACCESS_KEY_SECRET"] = "ghi"
+os.environ["STORAGE_BUCKET"] = "test"
 
 
 @pytest.fixture
@@ -20,6 +28,14 @@ def db():
 
     yield conn
     conn.close()
+
+
+@pytest.fixture
+def storage():
+    with mock_aws():
+        storage = Storage(region_name="us-east-1")
+        storage.s3.create_bucket(Bucket=storage.bucket)
+        yield storage
 
 
 @pytest.fixture

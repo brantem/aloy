@@ -4,11 +4,12 @@ import os
 import sqlite3
 import time
 from dataclasses import dataclass
+from typing import Any
 
 import thumbhash
 from fastapi import HTTPException, UploadFile
 
-import constants
+import configs
 from storage import Storage
 
 logger = logging.getLogger("uvicorn.error")
@@ -44,18 +45,18 @@ class UploadAttachmentResult:
     data: dict[str, str]
 
 
-def upload_attachments(storage: Storage, files: list[UploadFile] | None):
+def upload_attachments(storage: Storage, files: list[UploadFile] | None) -> list[UploadAttachmentResult]:
     if files is None or len(files) < 1:
         return []
 
-    if len(files) > constants.ATTACHMENT_MAX_COUNT:
+    if len(files) > configs.ATTACHMENT_MAX_COUNT:
         raise HTTPException(status_code=400, detail={"attachments": "TOO_MANY"})
 
-    results: list[UploadAttachmentResult] = []
+    results = []
     error = {}
 
     for i, attachment in enumerate(files):
-        if attachment.size is not None and attachment.size > constants.ATTACHMENT_MAX_SIZE:
+        if attachment.size is not None and attachment.size > configs.ATTACHMENT_MAX_SIZE:
             error[f"attachments.{i}"] = "TOO_BIG"
             continue
 
@@ -63,14 +64,14 @@ def upload_attachments(storage: Storage, files: list[UploadFile] | None):
         if attachment.content_type is not None:
             content_type = attachment.content_type
 
-        if content_type not in constants.ATTACHMENT_SUPPORTED_TYPES:
+        if content_type not in configs.ATTACHMENT_SUPPORTED_TYPES:
             error[f"attachments.{i}"] = "UNSUPPORTED"
             continue
 
         key = f"attachments/{int(time.time() * 1000)}{os.path.splitext(attachment.filename or "")[1]}"
         results.append(
             UploadAttachmentResult(
-                f"{constants.ASSETS_BASE_URL}/{key}",
+                f"{configs.ASSETS_BASE_URL}/{key}",
                 {
                     "type": content_type,
                     "hash": thumbhash.image_to_thumbhash(attachment.file),
@@ -87,7 +88,7 @@ def upload_attachments(storage: Storage, files: list[UploadFile] | None):
     return results
 
 
-def get_attachments(db: sqlite3.Connection, comment_ids: list[int]):
+def get_attachments(db: sqlite3.Connection, comment_ids: list[int]) -> dict[int, Any]:
     try:
         sql = f"""
             SELECT id, comment_id, url, data
@@ -105,7 +106,7 @@ def get_attachments(db: sqlite3.Connection, comment_ids: list[int]):
                 {
                     "id": attachment["id"],
                     "url": attachment["url"],
-                    "data": json.loads(attachment["data"]),
+                    "data": json.loads(attachment["data"]) if attachment["data"] is not None else None,
                 }
             )
 

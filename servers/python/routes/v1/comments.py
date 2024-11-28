@@ -6,7 +6,7 @@ from anyio import Path
 from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, field_validator
 
-import constants
+import configs
 from routes import deps
 from storage import Storage
 
@@ -52,7 +52,7 @@ def delete_comment(
 ):
     try:
         attachments = db.execute("SELECT url FROM attachments WHERE comment_id = ?", (comment_id,)).fetchall()
-        keys = [attachment["url"].removeprefix(constants.ASSETS_BASE_URL + "/") for attachment in attachments]
+        keys = [attachment["url"].removeprefix(configs.ASSETS_BASE_URL + "/") for attachment in attachments]
 
         db.execute("DELETE FROM comments WHERE id = ? AND user_id = ?", (comment_id, user_id))
         if len(keys) > 0:

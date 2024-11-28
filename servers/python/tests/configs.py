@@ -1,0 +1,5 @@
+ASSETS_BASE_URL = "https://assets.aloy.com"
+
+ATTACHMENT_MAX_COUNT = 1
+ATTACHMENT_MAX_SIZE = 200
+ATTACHMENT_SUPPORTED_TYPES = ["image/png"]

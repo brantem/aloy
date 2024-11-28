@@ -20,8 +20,6 @@ class ValidationBody(BaseModel):
 
 @pytest.fixture(scope="module")
 def client():
-    print(True)
-
     @app.get("/headers", dependencies=[Depends(get_app_id), Depends(get_user_id)])
     async def headers():
         return {"success": True}

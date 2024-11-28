@@ -5,14 +5,14 @@ import boto3
 
 
 class Storage:
-    def __init__(self) -> None:
+    def __init__(self, region_name: str = "auto") -> None:
         self.bucket = os.getenv("STORAGE_BUCKET", "")
         self.s3 = boto3.client(
             "s3",
             endpoint_url=os.getenv("STORAGE_ENDPOINT"),
             aws_access_key_id=os.getenv("STORAGE_ACCESS_KEY_ID"),
             aws_secret_access_key=os.getenv("STORAGE_ACCESS_KEY_SECRET"),
-            region_name="auto",
+            region_name=region_name,
         )
 
     def upload(self, file: IO[bytes], key: str, contentType: str = "", cacheControl: str = "max-age=31536000"):
