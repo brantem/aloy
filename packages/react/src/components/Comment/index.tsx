@@ -8,7 +8,7 @@ import { CheckCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/2
 import Attachments from './Attachments';
 
 import type { Comment } from 'types';
-import { cn } from 'lib/helpers';
+import { cn, parseTextData } from 'lib/helpers';
 import { useAppStore } from 'lib/stores';
 import { useActions, usePins } from 'lib/hooks';
 
@@ -150,7 +150,7 @@ export default function Comment({
 
       <Date comment={comment} />
 
-      <Text data={JSON.parse(comment.text)} isFixed={isFixed} />
+      <Text data={parseTextData(comment.text)} isFixed={isFixed} />
 
       <div className="absolute bottom-2.5 left-2.5 right-2.5 h-5 bg-gradient-to-t from-white to-transparent" />
 
