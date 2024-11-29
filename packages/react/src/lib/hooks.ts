@@ -154,16 +154,16 @@ export const useActions = () => {
       return v;
     },
 
-    async createPin(tempPin: PinPosition, text: string, onSuccess?: () => Promise<void> | void) {
-      if (!text) return;
+    async createPin(tempPin: PinPosition, body: FormData, onSuccess?: () => Promise<void> | void) {
+      body.set('_path', window.location.pathname);
+      Object.entries(tempPin).forEach(([k, v]) => body.set(k, typeof v === 'string' ? v : v.toString()));
       const res = await fetch(`${apiUrl}/v1/pins`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Aloy-App-ID': appId,
           'Aloy-User-ID': userId,
         },
-        body: JSON.stringify({ _path: window.location.pathname, ...tempPin, text }),
+        body,
       });
       if (!res.ok) return;
       await onSuccess?.();
@@ -193,16 +193,14 @@ export const useActions = () => {
       await onSuccess?.();
     },
 
-    async createComment(pinId: number, text: string, onSuccess?: () => Promise<void> | void) {
-      if (!text) return;
+    async createComment(pinId: number, body: FormData, onSuccess?: () => Promise<void> | void) {
       const res = await fetch(`${apiUrl}/v1/pins/${pinId}/comments`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Aloy-App-ID': appId,
           'Aloy-User-ID': userId,
         },
-        body: JSON.stringify({ text }),
+        body,
       });
       if (!res.ok) return;
       await onSuccess?.();
