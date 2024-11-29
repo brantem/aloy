@@ -11,7 +11,6 @@ export default function Lightbox() {
   const { attachments, isOpen, hide, index, setIndex } = useLightboxStore();
 
   useKeyDown((e) => {
-    console.log(e.key);
     switch (e.key) {
       case 'Escape':
         e.preventDefault();
