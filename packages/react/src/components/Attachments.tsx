@@ -5,13 +5,14 @@ import { cn } from 'lib/helpers';
 import { useLightboxStore } from 'lib/stores';
 
 type AttachmentsProps = {
+  parentRef: React.RefObject<HTMLElement>;
   items: Attachment[];
   readonly?: boolean;
   placement?: 'side' | 'bottom';
-  availableHeight: number;
 };
 
-const Attachments = ({ items, readonly = false, placement = 'side', availableHeight }: AttachmentsProps) => {
+const Attachments = ({ parentRef, items, readonly = false, placement = 'side' }: AttachmentsProps) => {
+  const availableHeight = parentRef.current?.clientHeight || 0;
   const max = placement === 'bottom' ? 14 : Math.floor((availableHeight - /* padding */ 10 - /* attachment */ 32) / 16);
   const showLightbox = useLightboxStore((state) => {
     return ((attachments, defaultIndex) => {

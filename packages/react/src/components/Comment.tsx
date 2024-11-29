@@ -5,7 +5,7 @@ import utc from 'dayjs/plugin/utc';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { CheckCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-import Attachments from './Attachments';
+import Attachments from 'components/Attachments';
 
 import type { Comment } from 'types';
 import { cn, parseTextData } from 'lib/helpers';
@@ -66,14 +66,14 @@ export default function Comment({
   ...props
 }: CommentProps) {
   const { mutate } = useSWRConfig();
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const user = useAppStore((state) => state.user);
   const { setActiveId, setSelectedCommentId } = usePins();
   const actions = useActions();
 
   return (
-    <div ref={ref} className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
+    <div ref={containerRef} className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
       <div className="flex items-center justify-between gap-3">
         <p className="mb-0.5 truncate font-medium leading-5 text-neutral-700">
           {comment.user.id === user.id ? user.name : comment.user.name}
@@ -138,10 +138,10 @@ export default function Comment({
         <>
           <div className="absolute bottom-2.5 left-2.5 right-2.5 h-5 bg-gradient-to-t from-white to-transparent" />
           <Attachments
+            parentRef={containerRef}
             items={comment.attachments}
             readonly={isReadonly}
             placement={isFixed ? 'bottom' : 'side'}
-            availableHeight={ref.current?.clientHeight || 0}
           />
         </>
       ) : null}
