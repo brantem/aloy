@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { State, type User } from 'types';
+import { Config, State, type User } from 'types';
 
 interface AppState {
   isReady: boolean;
@@ -9,8 +9,8 @@ interface AppState {
 
   apiUrl: string;
   appId: string;
-  breakpoints: number[];
-  setup(state: Pick<AppState, 'apiUrl' | 'appId' | 'breakpoints'>): void;
+  config: Config;
+  setup(state: Pick<AppState, 'apiUrl' | 'appId' | 'config'>): void;
 
   user: User;
   start(state: Pick<AppState, 'user'>): void;
@@ -28,8 +28,14 @@ export const useAppStore = create<AppState>()((set) => ({
 
   apiUrl: '',
   appId: '',
-  userId: 0,
-  breakpoints: [],
+  config: {
+    breakpoints: [],
+    attachment: {
+      maxCount: 0,
+      maxSize: 0,
+      supportedTypes: [],
+    },
+  },
   setup(state) {
     set({ isReady: true, ...state });
   },

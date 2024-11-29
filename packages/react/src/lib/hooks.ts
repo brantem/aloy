@@ -32,7 +32,7 @@ export const useWindowSize = () => {
 };
 
 export const useCurrentBreakpoint = () => {
-  const breakpoints = useAppStore((state) => state.breakpoints);
+  const breakpoints = useAppStore((state) => state.config.breakpoints);
   const w = useDebounce(useWindowSize()?.w || 0, 100);
   if (!breakpoints.length || !w) return null;
   for (let i = breakpoints.length - 1; i >= 0; i--) {

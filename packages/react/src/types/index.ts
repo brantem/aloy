@@ -1,6 +1,15 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Any = any;
 
+export type Config = {
+  breakpoints: number[];
+  attachment: {
+    maxCount: number;
+    maxSize: number;
+    supportedTypes: string[];
+  };
+};
+
 export enum State {
   Nothing = 0,
   AddComment,

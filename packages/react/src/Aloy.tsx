@@ -7,7 +7,7 @@ import Pill from 'components/Pill';
 import Pins from 'components/Pins';
 import Lightbox from 'components/Lightbox';
 
-import { State, User } from 'types';
+import { Config, State, User } from 'types';
 import type { User as ExternalUser } from 'types/external';
 import { useAppStore } from 'lib/stores';
 import { useActions } from 'lib/hooks';
@@ -19,8 +19,8 @@ export type AloyHandle = {
 export type AloyProps = {
   apiUrl: string;
   appId: string;
-  breakpoints: number[];
   user: ExternalUser;
+  config: Config;
 };
 
 const Aloy = forwardRef<AloyHandle, Pick<AloyProps, 'user'>>(function Aloy(props, ref) {
@@ -71,23 +71,29 @@ const Aloy = forwardRef<AloyHandle, Pick<AloyProps, 'user'>>(function Aloy(props
   );
 });
 
-const processProps = ({ apiUrl, appId, breakpoints, user }: AloyProps) => {
+const processProps = ({ apiUrl, appId, user, config }: AloyProps) => {
   return {
     apiUrl: apiUrl.trim(),
     appId: appId.trim(),
-    breakpoints: breakpoints.filter((v) => !isNaN(v)),
     user: { id: user.id.trim(), name: user.name.trim() },
+    config: {
+      breakpoints: config.breakpoints.filter((v) => !isNaN(v)),
+      attachment: {
+        ...config.attachment,
+        supportedTypes: config.attachment.supportedTypes.filter((type) => type.startsWith('image/')),
+      },
+    },
   };
 };
 
 export default forwardRef<AloyHandle, AloyProps>(function Wrapper(props, ref) {
-  const { apiUrl, appId, breakpoints, user } = processProps(props);
+  const { apiUrl, appId, user, config } = processProps(props);
 
   const { isReady, setup } = useAppStore((state) => ({ isReady: state.isReady, setup: state.setup }));
 
   useEffect(() => {
     if (!apiUrl || !appId || !user.id || !user.name) return;
-    setup({ apiUrl, appId, breakpoints });
+    setup({ apiUrl, appId, config });
   }, []);
 
   if (!isReady) return;
