@@ -92,12 +92,7 @@ export default function SaveCommentForm({ pinId, comment }: SaveCommentFormProps
         {comment ? (
           <div />
         ) : (
-          <AddAttachments
-            parentRef={formRef}
-            items={attachments}
-            onChange={(files) => setAttachments(files)}
-            isSubmitting={isSubmitting}
-          />
+          <AddAttachments items={attachments} onChange={(files) => setAttachments(files)} isSubmitting={isSubmitting} />
         )}
 
         {isSubmitting ? (
@@ -118,13 +113,12 @@ export default function SaveCommentForm({ pinId, comment }: SaveCommentFormProps
 }
 
 type AddAttachmentsProps = {
-  parentRef: React.RefObject<HTMLFormElement>;
   items: FileWithPreview[];
   onChange(files: FileWithPreview[]): void;
   isSubmitting: boolean;
 };
 
-function AddAttachments({ parentRef, items, onChange, isSubmitting }: AddAttachmentsProps) {
+function AddAttachments({ items, onChange, isSubmitting }: AddAttachmentsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const config = useAppStore((state) => state.config);
@@ -191,9 +185,7 @@ function AddAttachments({ parentRef, items, onChange, isSubmitting }: AddAttachm
       )}
 
       <Attachments
-        parentRef={parentRef}
         items={items.map((file) => ({ url: file.preview, data: { type: file.type } }))}
-        placement="bottom"
         // TODO: should be deletable
       />
     </>

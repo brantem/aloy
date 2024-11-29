@@ -66,14 +66,13 @@ export default function Comment({
   ...props
 }: CommentProps) {
   const { mutate } = useSWRConfig();
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const user = useAppStore((state) => state.user);
   const { setActiveId, setSelectedCommentId } = usePins();
   const actions = useActions();
 
   return (
-    <div ref={containerRef} className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
+    <div className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
       <div className="flex items-center justify-between gap-3">
         <p className="mb-0.5 truncate font-medium leading-5 text-neutral-700">
           {comment.user.id === user.id ? user.name : comment.user.name}
@@ -134,18 +133,8 @@ export default function Comment({
 
       <Text data={parseTextData(comment.text)} isFixed={isFixed} />
 
-      {comment.attachments.length ? (
-        <>
-          {isFixed && (
-            <div className="absolute bottom-2.5 left-2.5 right-2.5 h-5 bg-gradient-to-t from-white to-transparent" />
-          )}
-          <Attachments
-            parentRef={containerRef}
-            items={comment.attachments}
-            readonly={isReadonly}
-            placement={isFixed ? 'bottom' : 'side'}
-          />
-        </>
+      {!isFixed && comment.attachments.length ? ( // TODO: Remove isFixed after <Inbox /> is refactored
+        <Attachments items={comment.attachments} isReadonly={isReadonly} />
       ) : null}
 
       {showTotalReplies && totalReplies > 0 && (
