@@ -30,7 +30,7 @@ export default function Pin({ pin }: PinProps) {
       isActive: pin.id === state.activeId,
       isActiveIdLocked: state.isActiveIdLocked,
       setActiveId(v: number, isLocked = false) {
-        // handle click outside while there is selected
+        // handle click outside while there is a selected comment
         if (v === 0 && state.selectedCommentId !== 0) return state.setSelectedCommentId(0);
 
         state.setActiveId(v, isLocked);
