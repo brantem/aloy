@@ -136,7 +136,9 @@ export default function Comment({
 
       {comment.attachments.length ? (
         <>
-          <div className="absolute bottom-2.5 left-2.5 right-2.5 h-5 bg-gradient-to-t from-white to-transparent" />
+          {isFixed && (
+            <div className="absolute bottom-2.5 left-2.5 right-2.5 h-5 bg-gradient-to-t from-white to-transparent" />
+          )}
           <Attachments
             parentRef={containerRef}
             items={comment.attachments}
