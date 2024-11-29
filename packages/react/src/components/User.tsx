@@ -24,7 +24,7 @@ export default function User({ onChange }: UserProps) {
       {user && (
         <div className="fixed left-1/2 top-4 z-20 flex -translate-x-1/2 justify-center">
           <button
-            className="group relative flex h-8 items-center justify-center rounded-full bg-black px-3 text-sm font-semibold text-white shadow-xl dark:bg-white dark:text-black"
+            className="group relative flex h-8 items-center justify-center rounded-full border border-neutral-200 bg-black px-3 text-sm font-semibold text-white shadow-xl dark:bg-white dark:text-black"
             onClick={() => setIsOpen(true)}
           >
             {name || user.name}

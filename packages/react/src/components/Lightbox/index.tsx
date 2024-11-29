@@ -41,8 +41,8 @@ export default function Lightbox() {
   const attachment = attachments[index];
 
   return createPortal(
-    <div id="__aloy-lightbox" className="fixed inset-0 z-[1005]" aria-hidden="true">
-      <div className="relative size-full rounded-lg bg-black/75">
+    <div id="__aloy-lightbox" className="fixed inset-4 z-[1005] overflow-hidden" aria-hidden="true">
+      <div className="relative size-full rounded-lg bg-black">
         <button
           className="absolute right-4 top-4 flex size-12 cursor-pointer items-center justify-center rounded-full text-white hover:bg-white/20"
           onClick={hide}

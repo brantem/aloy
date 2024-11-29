@@ -79,7 +79,8 @@ export default function Pin({ pin }: PinProps) {
 
       <div
         className={cn(
-          '__aloy-pin absolute !rounded-tl-none border border-neutral-200 bg-white',
+          '__aloy-pin absolute !rounded-tl-none border border-neutral-200',
+          !isExpanded && pin.completed_at ? 'bg-lime-200 text-lime-900' : 'bg-white text-neutral-900',
           isHidden && '!hidden',
           isHoverable && 'cursor-pointer',
           isExpanded

@@ -5,9 +5,10 @@ import { useLightboxStore } from 'lib/stores';
 
 type AttachmentsProps = {
   items: Attachment[];
+  shouldStopPropagation?: boolean;
 };
 
-const Attachments = ({ items }: AttachmentsProps) => {
+const Attachments = ({ items, shouldStopPropagation }: AttachmentsProps) => {
   const showLightbox = useLightboxStore((state) => {
     return ((attachments, defaultIndex) => {
       state.show(attachments, defaultIndex);
@@ -22,7 +23,10 @@ const Attachments = ({ items }: AttachmentsProps) => {
         <div
           key={i}
           className="aspect-square cursor-pointer overflow-hidden rounded-md border border-neutral-200 shadow-sm hover:scale-110"
-          onClick={() => showLightbox(items, i)}
+          onClick={(e) => {
+            if (shouldStopPropagation) e.stopPropagation();
+            showLightbox(items, i);
+          }}
         >
           <Image src={attachment.url} hash={attachment.data.hash} />
         </div>

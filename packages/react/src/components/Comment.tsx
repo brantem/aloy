@@ -44,6 +44,7 @@ const Date = ({ comment }: DateProps) => {
 
 export type CommentProps = React.ComponentPropsWithoutRef<'div'> & {
   isRoot?: boolean;
+  isInInbox?: boolean;
   comment: Comment & { pin_id: number };
   showMarkAsDone?: boolean;
   isCompleted?: boolean;
@@ -53,6 +54,7 @@ export type CommentProps = React.ComponentPropsWithoutRef<'div'> & {
 
 export default function Comment({
   isRoot,
+  isInInbox,
   comment,
   className,
   showMarkAsDone,
@@ -70,7 +72,7 @@ export default function Comment({
   return (
     <div className={cn('relative p-3 text-sm', className)} {...props}>
       <div className="flex h-6 items-center justify-between gap-3">
-        <p className="mb-0.5 truncate font-medium leading-5 text-neutral-700">
+        <p className="mb-0.5 truncate font-medium leading-5 text-neutral-800">
           {comment.user.id === user.id ? user.name : comment.user.name}
         </p>
 
@@ -127,7 +129,9 @@ export default function Comment({
 
       <Text data={parseTextData(comment.text)} />
 
-      {comment.attachments.length ? <Attachments items={comment.attachments} /> : null}
+      {comment.attachments.length ? (
+        <Attachments items={comment.attachments} shouldStopPropagation={!isInInbox} />
+      ) : null}
 
       {showTotalReplies && totalReplies > 0 && (
         <span className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 rounded-full bg-black px-2 py-1 text-xs text-white">
