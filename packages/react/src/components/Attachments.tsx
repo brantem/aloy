@@ -1,15 +1,13 @@
 import Image from 'components/Image';
 
 import type { Attachment } from 'types';
-import { cn } from 'lib/helpers';
 import { useLightboxStore } from 'lib/stores';
 
 type AttachmentsProps = {
   items: Attachment[];
-  isReadonly?: boolean;
 };
 
-const Attachments = ({ items, isReadonly = false }: AttachmentsProps) => {
+const Attachments = ({ items }: AttachmentsProps) => {
   const showLightbox = useLightboxStore((state) => {
     return ((attachments, defaultIndex) => {
       state.show(attachments, defaultIndex);
@@ -23,15 +21,8 @@ const Attachments = ({ items, isReadonly = false }: AttachmentsProps) => {
       {items.map((attachment, i) => (
         <div
           key={i}
-          className={cn(
-            'aspect-square cursor-pointer overflow-hidden rounded-md border border-neutral-200 shadow-sm',
-            !isReadonly && 'hover:scale-110',
-          )}
-          onClick={(e) => {
-            if (isReadonly) return;
-            e.stopPropagation();
-            showLightbox(items, i);
-          }}
+          className="aspect-square cursor-pointer overflow-hidden rounded-md border border-neutral-200 shadow-sm hover:scale-110"
+          onClick={() => showLightbox(items, i)}
         >
           <Image src={attachment.url} hash={attachment.data.hash} />
         </div>

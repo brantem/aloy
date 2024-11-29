@@ -22,16 +22,12 @@ export default function User({ onChange }: UserProps) {
   return (
     <>
       {user && (
-        <div className="fixed right-4 top-4 z-20">
+        <div className="fixed left-1/2 top-4 z-20 flex -translate-x-1/2 justify-center">
           <button
-            className={cn(
-              'group relative flex size-7 items-center justify-center rounded-full bg-black px-2.5 text-white shadow-xl dark:bg-white dark:text-black',
-              isOpen ? 'w-fit text-sm font-normal' : 'font-bold hover:w-fit hover:text-sm hover:font-normal',
-            )}
+            className="group relative flex h-8 items-center justify-center rounded-full bg-black px-3 text-sm font-semibold text-white shadow-xl dark:bg-white dark:text-black"
             onClick={() => setIsOpen(true)}
           >
-            <span className={isOpen ? 'hidden' : 'group-hover:hidden'}>{user.name[0]}</span>
-            <span className={isOpen ? undefined : 'hidden group-hover:inline'}>{name || user.name}</span>
+            {name || user.name}
           </button>
         </div>
       )}

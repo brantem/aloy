@@ -45,8 +45,6 @@ const Date = ({ comment }: DateProps) => {
 export type CommentProps = React.ComponentPropsWithoutRef<'div'> & {
   isRoot?: boolean;
   comment: Comment & { pin_id: number };
-  isReadonly?: boolean;
-  isFixed?: boolean;
   showMarkAsDone?: boolean;
   isCompleted?: boolean;
   totalReplies?: number;
@@ -57,8 +55,6 @@ export default function Comment({
   isRoot,
   comment,
   className,
-  isReadonly = false,
-  isFixed = false,
   showMarkAsDone,
   isCompleted = false,
   totalReplies = 0,
@@ -72,70 +68,66 @@ export default function Comment({
   const actions = useActions();
 
   return (
-    <div className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={cn('relative p-3 text-sm', className)} {...props}>
+      <div className="flex h-6 items-center justify-between gap-3">
         <p className="mb-0.5 truncate font-medium leading-5 text-neutral-700">
           {comment.user.id === user.id ? user.name : comment.user.name}
         </p>
 
-        {!isReadonly && (
-          <div className="flex gap-[3px]">
-            {isRoot && showMarkAsDone && (
+        <div className="flex gap-[3px]">
+          {isRoot && showMarkAsDone && (
+            <Button
+              className={
+                isCompleted
+                  ? 'rounded-full bg-lime-50 text-lime-500'
+                  : 'cursor-pointer rounded-md text-neutral-400 hover:bg-lime-50 hover:text-lime-500'
+              }
+              onClick={async (e) => {
+                e.stopPropagation();
+                actions.completePin(comment.pin_id, isCompleted, () => {
+                  mutate(`/v1/pins?_path=${window.location.pathname}`);
+                });
+              }}
+            >
+              <CheckCircleIcon className="size-5" />
+            </Button>
+          )}
+
+          {comment.user.id === user.id ? (
+            <>
               <Button
-                className={
-                  isCompleted
-                    ? 'rounded-full bg-lime-50 text-lime-500'
-                    : 'cursor-pointer rounded-md text-neutral-400 hover:bg-lime-50 hover:text-lime-500'
-                }
+                className="text-neutral-400 hover:bg-neutral-50 hover:text-neutral-500"
+                onClick={() => setSelectedCommentId(comment.id)}
+              >
+                <PencilSquareIcon className="size-5" />
+              </Button>
+
+              <Button
+                className="text-neutral-400 hover:bg-rose-50 hover:text-rose-500"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  actions.completePin(comment.pin_id, isCompleted, () => {
-                    mutate(`/v1/pins?_path=${window.location.pathname}`);
-                  });
+                  if (isRoot) {
+                    actions.deletePin(comment.pin_id, async () => {
+                      await mutate(`/v1/pins?_path=${window.location.pathname}`);
+                      setActiveId(0, false);
+                    });
+                  } else {
+                    actions.deleteComment(comment.pin_id, async () => mutate(`/v1/pins/${comment.pin_id}/comments`));
+                  }
                 }}
               >
-                <CheckCircleIcon className="size-5" />
+                <TrashIcon className="size-5" />
               </Button>
-            )}
-
-            {comment.user.id === user.id ? (
-              <>
-                <Button
-                  className="text-neutral-400 hover:bg-neutral-50 hover:text-neutral-500"
-                  onClick={() => setSelectedCommentId(comment.id)}
-                >
-                  <PencilSquareIcon className="size-5" />
-                </Button>
-
-                <Button
-                  className="text-neutral-400 hover:bg-rose-50 hover:text-rose-500"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (isRoot) {
-                      actions.deletePin(comment.pin_id, async () => {
-                        await mutate(`/v1/pins?_path=${window.location.pathname}`);
-                        setActiveId(0, false);
-                      });
-                    } else {
-                      actions.deleteComment(comment.pin_id, async () => mutate(`/v1/pins/${comment.pin_id}/comments`));
-                    }
-                  }}
-                >
-                  <TrashIcon className="size-5" />
-                </Button>
-              </>
-            ) : null}
-          </div>
-        )}
+            </>
+          ) : null}
+        </div>
       </div>
 
       <Date comment={comment} />
 
-      <Text data={parseTextData(comment.text)} isFixed={isFixed} />
+      <Text data={parseTextData(comment.text)} />
 
-      {!isFixed && comment.attachments.length ? ( // TODO: Remove isFixed after <Inbox /> is refactored
-        <Attachments items={comment.attachments} isReadonly={isReadonly} />
-      ) : null}
+      {comment.attachments.length ? <Attachments items={comment.attachments} /> : null}
 
       {showTotalReplies && totalReplies > 0 && (
         <span className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 rounded-full bg-black px-2 py-1 text-xs text-white">
@@ -161,9 +153,9 @@ type Item = {
   children: Child[];
 };
 
-function Text({ data, isFixed }: { data: Item[]; isFixed: boolean }) {
+function Text({ data }: { data: Item[] }) {
   return (
-    <div className={cn('prose-sm mt-2', isFixed && 'line-clamp-3')}>
+    <div className="prose-sm mt-2">
       {data.map((item, i) => {
         if (!item.children.some((child) => child.text.trim())) {
           return (
