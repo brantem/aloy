@@ -22,6 +22,11 @@ export default defineWorkersConfig(async () => {
           },
         },
       },
+      coverage: {
+        provider: 'istanbul',
+        enabled: true,
+        reporter: ['text', 'html'],
+      },
     },
   };
 });
