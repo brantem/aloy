@@ -42,7 +42,7 @@ const Attachments = ({ parentRef, items, readonly = false, placement = 'side' }:
             showLightbox(items, i);
           }}
         >
-          <Image container={{ className: 'size-full' }} src={attachment.url} hash={attachment.data.hash} />
+          <Image src={attachment.url} hash={attachment.data.hash} />
         </div>
       ))}
       {items.length > max && (

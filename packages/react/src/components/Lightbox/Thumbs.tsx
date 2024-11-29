@@ -29,12 +29,7 @@ const Thumbs = forwardRef<HTMLDivElement, ThumbsProps>(function Thumbs({ attachm
             )}
             onClick={() => onClick(i)}
           >
-            <Image
-              container={{ className: 'size-full' }}
-              src={attachment.url}
-              hash={attachment.data.hash}
-              objectFit="cover"
-            />
+            <Image src={attachment.url} hash={attachment.data.hash} objectFit="cover" />
           </div>
         </div>
       ))}
