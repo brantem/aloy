@@ -72,24 +72,6 @@ export default function Comment({
   const { setActiveId, setSelectedCommentId } = usePins();
   const actions = useActions();
 
-  comment.attachments = [
-    { url: 'https://assets.aloy.brantem.com/kelly-sikkema-kgmyMSu0kz4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/philip-oroni-CrJGbb7kzU4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/the-new-york-public-library-0XcfadMmTck-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/kelly-sikkema-kgmyMSu0kz4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/philip-oroni-CrJGbb7kzU4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/the-new-york-public-library-0XcfadMmTck-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/kelly-sikkema-kgmyMSu0kz4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/philip-oroni-CrJGbb7kzU4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/the-new-york-public-library-0XcfadMmTck-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/kelly-sikkema-kgmyMSu0kz4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/philip-oroni-CrJGbb7kzU4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/the-new-york-public-library-0XcfadMmTck-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/kelly-sikkema-kgmyMSu0kz4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/philip-oroni-CrJGbb7kzU4-unsplash.jpg' },
-    { url: 'https://assets.aloy.brantem.com/the-new-york-public-library-0XcfadMmTck-unsplash.jpg' },
-  ]; // TODO
-
   return (
     <div ref={ref} className={cn('relative p-3 text-sm', isFixed && 'pb-5', className)} {...props}>
       <div className="flex items-center justify-between gap-3">
@@ -152,14 +134,17 @@ export default function Comment({
 
       <Text data={parseTextData(comment.text)} isFixed={isFixed} />
 
-      <div className="absolute bottom-2.5 left-2.5 right-2.5 h-5 bg-gradient-to-t from-white to-transparent" />
-
-      <Attachments
-        items={comment.attachments}
-        readonly={isReadonly}
-        placement={isFixed ? 'bottom' : 'side'}
-        availableHeight={ref.current?.clientHeight || 0}
-      />
+      {comment.attachments.length ? (
+        <>
+          <div className="absolute bottom-2.5 left-2.5 right-2.5 h-5 bg-gradient-to-t from-white to-transparent" />
+          <Attachments
+            items={comment.attachments}
+            readonly={isReadonly}
+            placement={isFixed ? 'bottom' : 'side'}
+            availableHeight={ref.current?.clientHeight || 0}
+          />
+        </>
+      ) : null}
 
       {showTotalReplies && totalReplies > 0 && (
         <span className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 rounded-full bg-black px-2 py-1 text-xs text-white">

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
+import Image from 'components/Image';
 import Thumbs from './Thumbs';
 
 import { useLightboxStore } from 'lib/stores';
@@ -37,6 +38,8 @@ export default function Lightbox() {
   }, [index]);
 
   if (!isOpen) return null;
+
+  const attachment = attachments[index];
 
   return createPortal(
     <div id="__aloy-lightbox" className="fixed inset-0 z-[1005]" aria-hidden="true">
@@ -76,7 +79,12 @@ export default function Lightbox() {
         )}
 
         <div className="mx-auto flex h-[calc(100%-64px-32px)] w-[calc(100%-80px*2)] select-none items-center justify-center py-4">
-          <img src={attachments[index].url} className="max-h-full max-w-full object-contain" />
+          <Image
+            container={{ className: 'max-h-full max-w-full' }}
+            src={attachment.url}
+            hash={attachment.data.hash}
+            objectFit="contain"
+          />
         </div>
 
         {index !== attachments.length - 1 && (

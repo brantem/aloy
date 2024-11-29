@@ -1,5 +1,7 @@
 import { forwardRef } from 'react';
 
+import Image from 'components/Image';
+
 import type { Attachment } from 'types';
 import { cn } from 'lib/helpers';
 
@@ -22,12 +24,13 @@ const Thumbs = forwardRef<HTMLDivElement, ThumbsProps>(function Thumbs({ attachm
         >
           <div
             className={cn(
-              'size-full cursor-pointer select-none overflow-hidden rounded-lg bg-cover bg-center',
+              'size-full cursor-pointer select-none overflow-hidden rounded-lg',
               i === currentIndex ? 'outline outline-2 outline-offset-4 outline-white' : 'opacity-75',
             )}
             onClick={() => onClick(i)}
-            style={{ backgroundImage: `url(${attachment.url})` }}
-          />
+          >
+            <Image container={{ className: 'size-full' }} src={attachment.url} hash={attachment.data.hash} />
+          </div>
         </div>
       ))}
     </div>

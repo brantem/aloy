@@ -22,8 +22,11 @@ export type PinPosition = {
 };
 
 export type Attachment = {
-  hash?: string | null; // TODO
   url: string;
+  data: {
+    type: string;
+    hash?: string;
+  };
 };
 
 export type Comment = {

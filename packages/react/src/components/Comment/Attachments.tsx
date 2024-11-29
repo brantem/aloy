@@ -1,3 +1,5 @@
+import Image from 'components/Image';
+
 import type { Attachment } from 'types';
 import { cn } from 'lib/helpers';
 import { useLightboxStore } from 'lib/stores';
@@ -31,15 +33,16 @@ const Attachments = ({ items, readonly = false, placement = 'side', availableHei
         <div
           key={i}
           className={cn(
-            'relative size-8 shrink-0 cursor-pointer overflow-hidden rounded-md border border-neutral-200 bg-cover bg-center shadow-sm',
+            'relative size-8 shrink-0 cursor-pointer overflow-hidden rounded-md border border-neutral-200 shadow-sm',
             !readonly && 'hover:scale-110',
           )}
           onClick={(e) => {
             e.stopPropagation();
             showLightbox(items, i);
           }}
-          style={{ backgroundImage: `url('${attachment.url}')` }}
-        />
+        >
+          <Image container={{ className: 'size-full' }} src={attachment.url} hash={attachment.data.hash} />
+        </div>
       ))}
       {items.length > max && (
         <button
