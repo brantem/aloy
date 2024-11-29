@@ -37,7 +37,7 @@ func (h *Handler) uploadAttachments(c *fiber.Ctx) ([]*UploadAttachmentResult, er
 	}
 
 	attachments := form.File["attachments"]
-	if len(attachments) >= h.config.attachmentMaxCount {
+	if len(attachments) > h.config.attachmentMaxCount {
 		return nil, errs.MapErrors{"attachments": errs.NewCodeError("TOO_MANY")}
 	}
 
