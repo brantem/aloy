@@ -15,7 +15,7 @@ const Thumbs = forwardRef<HTMLDivElement, ThumbsProps>(function Thumbs({ attachm
   return (
     <div
       ref={ref}
-      className="absolute bottom-0 left-0 right-0 ml-[50%] flex w-[calc(100vw-32px)] shrink-0 -translate-x-1/2 snap-x snap-mandatory overflow-x-auto p-4"
+      className="absolute bottom-0 left-0 right-0 ml-[50%] flex w-screen shrink-0 -translate-x-1/2 snap-x snap-mandatory overflow-x-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {attachments.map((attachment, i) => (
         <div
@@ -29,7 +29,12 @@ const Thumbs = forwardRef<HTMLDivElement, ThumbsProps>(function Thumbs({ attachm
             )}
             onClick={() => onClick(i)}
           >
-            <Image container={{ className: 'size-full' }} src={attachment.url} hash={attachment.data.hash} />
+            <Image
+              container={{ className: 'size-full' }}
+              src={attachment.url}
+              hash={attachment.data.hash}
+              objectFit="cover"
+            />
           </div>
         </div>
       ))}

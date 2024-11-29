@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-import Image from 'components/Image';
 import Thumbs from './Thumbs';
 
 import { useLightboxStore } from 'lib/stores';
@@ -78,13 +77,8 @@ export default function Lightbox() {
           </button>
         )}
 
-        <div className="mx-auto flex h-[calc(100%-64px-32px)] w-[calc(100%-80px*2)] select-none items-center justify-center py-4">
-          <Image
-            container={{ className: 'max-h-full max-w-full' }}
-            src={attachment.url}
-            hash={attachment.data.hash}
-            objectFit="contain"
-          />
+        <div className="mx-auto flex h-[calc(100%-64px-32px)] w-[calc(100%-80px*2)] select-none items-center justify-center pt-4">
+          <img src={attachment.url} className="max-h-full max-w-full object-contain" /> {/* TODO: hash */}
         </div>
 
         {index !== attachments.length - 1 && (
