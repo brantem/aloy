@@ -115,7 +115,7 @@ func (h *Handler) pins(c *fiber.Ctx) error {
 
 	for _, node := range result.Nodes {
 		node.Comment = comments[node.CommentID]
-		if v, ok := attachments[node.ID]; ok {
+		if v, ok := attachments[node.CommentID]; ok {
 			node.Comment.Attachments = v
 		} else {
 			node.Comment.Attachments = []*model.Attachment{}
