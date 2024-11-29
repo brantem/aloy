@@ -52,5 +52,5 @@ export type Pin = PinPosition & {
   user: User;
   total_replies: number;
   completed_at: number | null;
-  comment: Pick<Comment, 'id' | 'text' | 'created_at' | 'updated_at'>;
+  comment: Pick<Comment, 'id' | 'text' | 'created_at' | 'updated_at' | 'attachments'>;
 };
