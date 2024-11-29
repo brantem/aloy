@@ -40,7 +40,7 @@ export default function Inbox() {
             comment={{ pin_id: pin.id, ...pin.comment, user: pin.user }}
             className={cn(
               'h-36 w-72 flex-shrink-0 cursor-pointer select-none snap-center rounded-lg border border-neutral-200 bg-white',
-              isReadonly ? 'opacity-50' : 'shadow-sm',
+              isReadonly ? 'brightness-50' : 'shadow-sm',
             )}
             isReadonly={isReadonly}
             showMarkAsDone
