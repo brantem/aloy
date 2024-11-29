@@ -30,7 +30,7 @@ export default function App() {
             attachment: {
               maxCount: 3,
               maxSize: 100 * 1000,
-              supportedTypes: ['image/png'],
+              supportedTypes: ['image/gif', 'image/jpeg', 'image/png', 'image/webp'],
             },
           }}
           user={user}
