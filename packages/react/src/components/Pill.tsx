@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { ChatBubbleOvalLeftIcon, InboxIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 import { State } from 'types';
-import { useAppStore, usePinStore } from 'lib/stores';
+import { useAppStore, usePinStore, useLightboxStore } from 'lib/stores';
 import { cn } from 'lib/helpers';
 import { usePins } from 'lib/hooks';
 
@@ -72,6 +72,10 @@ const CloseButton = () => {
 };
 
 export default function Pill() {
+  const isLightboxOpen = useLightboxStore((state) => state.isOpen);
+
+  if (isLightboxOpen) return null;
+
   return createPortal(
     <div
       id="__aloy-pill"
