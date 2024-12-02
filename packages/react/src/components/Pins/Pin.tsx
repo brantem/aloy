@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 
 import Comment from 'components/Comment';
-import AddCommentForm from 'components/SaveCommentForm';
+import SaveCommentForm from 'components/SaveCommentForm';
 
 import { State, type Pin, type Comment as C } from 'types';
 import { usePinPosition } from 'lib/hooks';
@@ -139,11 +139,11 @@ const Replies = ({ pinId }: { pinId: Pin['id'] }) => {
     <>
       {(data?.nodes || []).map((comment) => {
         if (selectedCommentId === comment.id) {
-          return <AddCommentForm key={comment.id} pinId={pinId} comment={comment} />;
+          return <SaveCommentForm key={comment.id} pinId={pinId} comment={comment} />;
         }
         return <Comment key={comment.id} comment={{ pin_id: pinId, ...comment }} />;
       })}
-      {!selectedCommentId ? <AddCommentForm pinId={pinId} /> : null}
+      {!selectedCommentId ? <SaveCommentForm pinId={pinId} /> : null}
     </>
   );
 };

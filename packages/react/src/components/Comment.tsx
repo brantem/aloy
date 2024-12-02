@@ -130,7 +130,7 @@ export default function Comment({
       <Text data={parseTextData(comment.text)} />
 
       {comment.attachments.length ? (
-        <Attachments items={comment.attachments} shouldStopPropagation={!isInInbox} />
+        <Attachments className="mt-2" items={comment.attachments} shouldStopPropagation={!isInInbox} />
       ) : null}
 
       {showTotalReplies && totalReplies > 0 && (

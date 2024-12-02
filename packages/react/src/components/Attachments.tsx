@@ -2,13 +2,15 @@ import Image from 'components/Image';
 
 import type { Attachment } from 'types';
 import { useLightboxStore } from 'lib/stores';
+import { cn } from 'lib/helpers';
 
 type AttachmentsProps = {
+  className?: string;
   items: Attachment[];
   shouldStopPropagation?: boolean;
 };
 
-const Attachments = ({ items, shouldStopPropagation }: AttachmentsProps) => {
+const Attachments = ({ className, items, shouldStopPropagation }: AttachmentsProps) => {
   const showLightbox = useLightboxStore((state) => {
     return ((attachments, defaultIndex) => {
       state.show(attachments, defaultIndex);
@@ -18,7 +20,7 @@ const Attachments = ({ items, shouldStopPropagation }: AttachmentsProps) => {
   if (!items.length) return null;
 
   return (
-    <div className="mt-2 grid grid-cols-7 justify-between gap-1">
+    <div className={cn('grid grid-cols-7 justify-between gap-1', className)}>
       {items.map((attachment, i) => (
         <div
           key={i}
