@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 
-import AddCommentForm from 'components/SaveCommentForm';
+import SaveCommentForm from 'components/SaveCommentForm';
 
 import type { PinPosition } from 'types';
 import { usePinPosition } from 'lib/hooks';
@@ -22,7 +22,7 @@ export default function AddCommentCard({ p }: AddCommentCardProps) {
         left: position.left,
       }}
     >
-      <AddCommentForm pinId={null} />
+      <SaveCommentForm pinId={null} />
     </div>,
     document.body,
   );
