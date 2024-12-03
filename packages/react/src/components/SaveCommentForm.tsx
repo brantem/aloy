@@ -91,7 +91,15 @@ export default function SaveCommentForm({ pinId, comment }: SaveCommentFormProps
       <Attachments
         className="px-3"
         items={attachments.map((file) => ({ url: file.preview, data: { type: file.type } }))}
-        // TODO: should be deletable
+        onDelete={(j) => {
+          setAttachments((prev) => {
+            return prev.filter((file, i) => {
+              if (i !== j) return true;
+              URL.revokeObjectURL(file.preview);
+              return false;
+            });
+          });
+        }}
       />
 
       <div className="flex items-center justify-between p-1.5">
@@ -131,7 +139,7 @@ function AddAttachments({ items, onChange, isSubmitting }: AddAttachmentsProps) 
 
   const [error, setError] = useState('');
 
-  if (!isSubmitting) return null;
+  if (isSubmitting) return null;
 
   const canAdd = items.length < config.attachment.maxCount;
 
