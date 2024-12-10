@@ -9,7 +9,7 @@ import { cn } from 'lib/helpers';
 type AttachmentsProps = {
   className?: string;
   items: Attachment[];
-  onDelete(i: number): void;
+  onDelete?: (i: number) => void;
   shouldStopPropagation?: boolean;
 };
 
