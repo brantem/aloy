@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { ChatBubbleOvalLeftIcon, InboxIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 import { State } from 'types';
-import { useAppStore, usePinStore } from 'lib/stores';
+import { useAppStore, usePinStore, useLightboxStore } from 'lib/stores';
 import { cn } from 'lib/helpers';
 import { usePins } from 'lib/hooks';
 
@@ -72,23 +72,16 @@ const CloseButton = () => {
 };
 
 export default function Pill() {
-  const isInboxOpen = useAppStore((state) => state.active === State.ShowInbox);
+  const isLightboxOpen = useLightboxStore((state) => state.isOpen);
+
+  if (isLightboxOpen) return null;
+
   return createPortal(
     <div
       id="__aloy-pill"
-      className={cn(
-        'fixed bottom-0 left-1/2 z-[1004] -translate-x-1/2 p-6 transition-[margin]',
-        isInboxOpen ? 'm-0' : '-mb-12 hover:m-0',
-      )}
+      className="fixed bottom-0 left-1/2 z-[1004] -mb-12 -translate-x-1/2 p-6 transition-[margin] hover:-mb-2"
     >
-      <div
-        className={cn(
-          'flex items-stretch gap-1.5 rounded-full border border-neutral-200 bg-white p-1.5 transition-all',
-          isInboxOpen
-            ? 'shadow-[100px_-50px_250px_100px_rgb(142,144,249,.5),-100px_0_250px_100px_rgb(255,59,139,.5)]'
-            : 'shadow-sm',
-        )}
-      >
+      <div className="flex items-stretch gap-1.5 rounded-full border border-neutral-200 bg-white p-1.5 shadow-sm transition-all">
         <AddCommentButton />
         <ShowInboxButton />
         <div className="mx-1.5 w-0 border-l border-neutral-200" />

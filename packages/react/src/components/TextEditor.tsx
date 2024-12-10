@@ -5,7 +5,7 @@ import { withHistory } from 'slate-history';
 import isHotkey from 'is-hotkey';
 
 import type { Any } from 'types';
-import { cn } from 'lib/helpers';
+import { cn, parseTextData } from 'lib/helpers';
 
 const HOTKEYS: Record<string, string> = {
   'mod+b': 'bold',
@@ -28,14 +28,14 @@ export default forwardRef<TextEditorHandle, TextEditorProps>(function TextEditor
   { className, initialValue: _initialValue = '', onChange, onKeyDown },
   ref,
 ) {
-  const [initialValue] = useState(() => generateInitialValueFromString(_initialValue));
+  const [initialValue] = useState(() => parseTextData(_initialValue));
 
   const editor = useMemo(() => withHistory(withReact(createEditor())), []);
   const renderLeaf = useCallback((props: RenderLeafProps) => <Leaf {...props} />, []);
 
   useImperativeHandle(ref, () => ({
     reset() {
-      editor.children = generateInitialValueFromString(_initialValue);
+      editor.children = parseTextData(_initialValue);
     },
   }));
 
@@ -71,19 +71,6 @@ export default forwardRef<TextEditorHandle, TextEditorProps>(function TextEditor
     </Slate>
   );
 });
-
-function generateInitialValueFromString(s: string) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return [
-      {
-        type: 'paragraph',
-        children: [{ text: s.trim() }],
-      },
-    ];
-  }
-}
 
 function Leaf({ attributes, children, leaf }: RenderLeafProps) {
   if ('bold' in leaf) children = <strong>{children}</strong>;

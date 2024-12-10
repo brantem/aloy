@@ -32,7 +32,7 @@ export const useWindowSize = () => {
 };
 
 export const useCurrentBreakpoint = () => {
-  const breakpoints = useAppStore((state) => state.breakpoints);
+  const breakpoints = useAppStore((state) => state.config.breakpoints);
   const w = useDebounce(useWindowSize()?.w || 0, 100);
   if (!breakpoints.length || !w) return null;
   for (let i = breakpoints.length - 1; i >= 0; i--) {
@@ -109,16 +109,18 @@ export const usePins = () => {
   } as const;
 };
 
-export const useEscape = (cb: () => void) => {
+export const useKeyDown = (cb: (e: KeyboardEvent) => void) => {
   useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      cb();
-    };
+    document.addEventListener('keydown', cb);
+    return () => document.removeEventListener('keydown', cb);
+  }, [cb]);
+};
 
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, []);
+export const useEscape = (cb: () => void) => {
+  useKeyDown((e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    cb();
+  });
 };
 
 export const useActions = () => {
@@ -152,16 +154,16 @@ export const useActions = () => {
       return v;
     },
 
-    async createPin(tempPin: PinPosition, text: string, onSuccess?: () => Promise<void> | void) {
-      if (!text) return;
+    async createPin(tempPin: PinPosition, body: FormData, onSuccess?: () => Promise<void> | void) {
+      body.set('_path', window.location.pathname);
+      Object.entries(tempPin).forEach(([k, v]) => body.set(k, typeof v === 'string' ? v : v.toString()));
       const res = await fetch(`${apiUrl}/v1/pins`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Aloy-App-ID': appId,
           'Aloy-User-ID': userId,
         },
-        body: JSON.stringify({ _path: window.location.pathname, ...tempPin, text }),
+        body,
       });
       if (!res.ok) return;
       await onSuccess?.();
@@ -191,16 +193,14 @@ export const useActions = () => {
       await onSuccess?.();
     },
 
-    async createComment(pinId: number, text: string, onSuccess?: () => Promise<void> | void) {
-      if (!text) return;
+    async createComment(pinId: number, body: FormData, onSuccess?: () => Promise<void> | void) {
       const res = await fetch(`${apiUrl}/v1/pins/${pinId}/comments`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Aloy-App-ID': appId,
           'Aloy-User-ID': userId,
         },
-        body: JSON.stringify({ text }),
+        body,
       });
       if (!res.ok) return;
       await onSuccess?.();

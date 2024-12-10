@@ -1,70 +1,91 @@
 import { Hono } from 'hono';
 import * as v from 'valibot';
 
-import type { User, Pin, Comment } from '../../types';
+import * as schemas from './schemas';
+import * as shared from './shared';
+
+import type { Pin, Comment } from '../../types';
 import * as validator from '../../validator';
 
 const pins = new Hono<Env>();
 
 pins.get('/', async (c) => {
   const stmt = c.env.DB.prepare(`
+    WITH t AS (
+		  SELECT id, pin_id
+		  FROM comments
+		  GROUP BY pin_id
+		  HAVING MIN(created_at)
+		)
     SELECT
-      p.id, p.user_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
+      p.id, p.user_id, t.id AS comment_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
       (SELECT COUNT(c.id)-1 FROM comments c WHERE c.pin_id = p.id) AS total_replies
     FROM pins p
+		JOIN t ON t.pin_id = p.id
     WHERE p.app_id = ?1
       AND CASE WHEN ?2 != '' THEN p.user_id = ?2 ELSE TRUE END
       AND CASE WHEN ?3 != '' THEN p._path = ?3 ELSE TRUE END
     ORDER BY p.id DESC
   `);
   const { results } = await stmt
-    .bind(c.get('appId'), c.req.query('me') === '1' ? c.get('userId') : '', c.req.query('_path') || '')
-    .all<Omit<Pin, 'app_id' | '_path' | 'completed_by_id'> & { text: string }>();
+    .bind(c.var.appId, c.req.query('me') === '1' ? c.var.userId : '', c.req.query('_path') || '')
+    .all<Omit<Pin, 'app_id' | '_path' | 'completed_by_id'> & { comment_id: number }>();
   if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
-  const pinIds = [];
-  const userIds = [];
-  for (const pin of results) {
-    pinIds.push(pin.id);
-    userIds.push(pin.user_id);
-  }
-  const [users, comments] = await Promise.all([getUsers(c.env.DB, userIds), getRootComments(c.env.DB, pinIds)]);
+  const userIds = [...new Set(results.map((pin) => pin.user_id))];
+  const commentIds = [...new Set(results.map((pin) => pin.comment_id))];
+  const [users, comments, attachments] = await Promise.all([
+    shared.getUsers(userIds),
+    shared.getComments(commentIds),
+    shared.getAttachments(commentIds),
+  ]);
 
-  const nodes = results.map(({ user_id, ...pin }) => ({ ...pin, user: users[user_id], comment: comments[pin.id] }));
+  const nodes = results.map(({ user_id, ...pin }) => ({
+    ...pin,
+    user: users[user_id],
+    comment: { ...comments[pin.comment_id], attachments: attachments[pin.comment_id] || [] },
+  }));
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
-const createPinSchema = v.object({
-  _path: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-  path: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-  w: v.number(),
-  _x: v.number(),
-  x: v.number(),
-  _y: v.number(),
-  y: v.number(),
-  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-});
+pins.post('/', async (c) => {
+  type CreatePinBody = v.InferInput<typeof schemas.createPin> & {
+    attachments: File | File[];
+  };
 
-pins.post('/', validator.json(createPinSchema), async (c) => {
-  const { _path, path, w, _x, x, _y, y, text } = await c.req.valid('json');
+  const _body = await c.req.parseBody<{ all: true }, CreatePinBody>({ all: true });
+
+  const result = v.safeParse(schemas.createPin, _body);
+  if (!result.success) return c.json({ pin: null, error: validator.issuesToError(result.issues) }, 200);
+  const body = result.output;
+
+  let attachments;
+  try {
+    attachments = await shared.uploadAttachments(_body.attachments);
+  } catch (err) {
+    if (err === 'INTERNAL_SERVER_ERROR') throw err;
+    return c.json({ error: err }, 400);
+  }
 
   const stmt = c.env.DB.prepare(`
-      INSERT INTO pins (app_id, user_id, _path, path, w, _x, x, _y, y)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      RETURNING id, created_at
-    `);
-  const pin = await stmt
-    .bind(c.get('appId'), c.get('userId'), _path, path, w, _x, x, _y, y)
-    .first<Pick<Pin, 'id' | 'created_at'>>();
-  if (!pin) return c.json({ pin: null, error: null }, 500);
+    INSERT INTO pins (app_id, user_id, _path, path, w, _x, x, _y, y)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    RETURNING id, created_at
+  `);
+  const pinId = await stmt
+    .bind(c.var.appId, c.var.userId, body._path, body.path, body.w, body._x, body.x, body._y, body.y)
+    .first('id');
+  if (!pinId) return c.json({ pin: null, error: null }, 500);
 
-  const stmt2 = c.env.DB.prepare(`
-      INSERT INTO comments (pin_id, user_id, text, created_at, updated_at)
-      VALUES (?1, ?2, ?3, ?4, ?4)
-    `);
-  await stmt2.bind(pin.id, c.get('userId'), text, pin.created_at).run();
+  const stmt2 = c.env.DB.prepare(`INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id`);
+  const commentId = await stmt2.bind(pinId, c.var.userId, body.text).first('id');
 
-  return c.json({ pin: { id: pin.id }, error: null }, 200);
+  if (!attachments.length) return c.json({ pin: { id: pinId }, error: null }, 200);
+
+  const stmt3 = c.env.DB.prepare('INSERT INTO attachments (comment_id, url, data) VALUES (?, ?, ?)');
+  await Promise.all(attachments.map((v) => stmt3.bind(commentId, v.url, JSON.stringify(v.data)).run()));
+
+  return c.json({ pin: { id: pinId }, error: null }, 200);
 });
 
 pins.post('/:id/complete', async (c) => {
@@ -74,7 +95,7 @@ pins.post('/:id/complete', async (c) => {
       SET completed_at = CURRENT_TIMESTAMP, completed_by_id = ?2
       WHERE id = ?1 AND completed_at IS NULL
     `);
-    await stmt.bind(c.req.param('id'), c.get('userId')).run();
+    await stmt.bind(c.req.param('id'), c.var.userId).run();
   } else {
     const stmt = c.env.DB.prepare(`
       UPDATE pins
@@ -88,7 +109,7 @@ pins.post('/:id/complete', async (c) => {
 
 pins.delete('/:id', async (c) => {
   const stmt = c.env.DB.prepare('DELETE FROM pins WHERE id = ? AND user_id = ?');
-  await stmt.bind(c.req.param('id'), c.get('userId')).run();
+  await stmt.bind(c.req.param('id'), c.var.userId).run();
   return c.json({ success: true, error: null }, 200);
 });
 
@@ -103,50 +124,46 @@ pins.get('/:id/comments', async (c) => {
   const { results } = await stmt.bind(c.req.param('id')).all<Omit<Comment, 'pin_id'>>();
   if (!results.length) return c.json({ nodes: [], error: null }, 200, { 'X-Total-Count': '0' });
 
+  const commentIds = [...new Set(results.map((comment) => comment.id))];
   const userIds = [...new Set(results.map((comment) => comment.user_id))];
-  const users = await getUsers(c.env.DB, userIds);
+  const [users, attachments] = await Promise.all([shared.getUsers(userIds), shared.getAttachments(commentIds)]);
 
-  const nodes = results.map(({ user_id, ...comment }) => ({ ...comment, user: users[user_id] }));
+  const nodes = results.map(({ user_id, ...comment }) => ({
+    ...comment,
+    user: users[user_id],
+    attachments: attachments[comment.id] || [],
+  }));
   return c.json({ nodes, error: null }, 200, { 'X-Total-Count': nodes.length.toString() });
 });
 
-const createCommentSchema = v.object({
-  text: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-});
+pins.post('/:id/comments', async (c) => {
+  type CreateCommentBody = v.InferInput<typeof schemas.createComment> & {
+    attachments: File | File[];
+  };
 
-pins.post('/:id/comments', validator.json(createCommentSchema), async (c) => {
-  const { text } = await c.req.valid('json');
+  const _body = await c.req.parseBody<{ all: true }, CreateCommentBody>({ all: true });
+
+  const result = v.safeParse(schemas.createComment, _body);
+  if (!result.success) return c.json({ comment: null, error: validator.issuesToError(result.issues) }, 200);
+  const body = result.output;
+
+  let attachments;
+  try {
+    attachments = await shared.uploadAttachments(_body.attachments);
+  } catch (err) {
+    if (err === 'INTERNAL_SERVER_ERROR') throw err;
+    return c.json({ error: err }, 400);
+  }
+
   const stmt = c.env.DB.prepare('INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id');
-  const commentId = await stmt.bind(c.req.param('id'), c.get('userId'), text).first('id');
+  const commentId = await stmt.bind(c.req.param('id'), c.var.userId, body.text).first('id');
+
+  if (!attachments.length) return c.json({ comment: { id: commentId }, error: null }, 200);
+
+  const stmt2 = c.env.DB.prepare('INSERT INTO attachments (comment_id, url, data) VALUES (?, ?, ?)');
+  await Promise.all(attachments.map((v) => stmt2.bind(commentId, v.url, JSON.stringify(v.data)).run()));
+
   return c.json({ comment: { id: commentId }, error: null }, 200);
 });
 
 export default pins;
-
-const getUsers = async (d1: D1Database, ids: string[]) => {
-  const stmt = d1.prepare(`
-    SELECT id, name
-    FROM users
-    WHERE id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
-  `);
-  return (await stmt.bind(...ids).all<User>()).results.reduce(
-    (users, user) => ({ ...users, [user.id]: user }),
-    {} as { [id: string]: User },
-  );
-};
-
-const getRootComments = async (d1: D1Database, ids: number[]) => {
-  type Row = Pick<Comment, 'id' | 'pin_id' | 'text' | 'created_at' | 'updated_at'>;
-
-  const stmt = d1.prepare(`
-    SELECT id, pin_id, text, created_at, updated_at
-    FROM comments
-    WHERE pin_id IN (${Array.from({ length: ids.length }).fill('?').join(',')})
-    GROUP BY pin_id
-    HAVING MIN(created_at)
-  `);
-  return (await stmt.bind(...ids).all<Row>()).results.reduce(
-    (comments, { pin_id, ...comment }) => ({ ...comments, [pin_id]: comment }),
-    {} as { [id: string]: Omit<Row, 'pin_id'> },
-  );
-};

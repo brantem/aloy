@@ -2,12 +2,14 @@ package body
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/brantem/aloy/errs"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,54 +27,7 @@ func TestParse(t *testing.T) {
 		return c.Status(fiber.StatusOK).JSON(data)
 	}
 
-	t.Run("required", func(t *testing.T) {
-		app := fiber.New()
-		app.Post("/test", handler)
-
-		req := httptest.NewRequest(fiber.MethodPost, "/test", strings.NewReader(`{}`))
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, _ := app.Test(req)
-		assert.Equal(fiber.StatusBadRequest, resp.StatusCode)
-		body, _ := io.ReadAll(resp.Body)
-		assert.Equal(`{"title":"INVALID"}`, string(body))
-	})
-
-	t.Run("invalid", func(t *testing.T) {
-		app := fiber.New()
-		app.Post("/test", handler)
-
-		req := httptest.NewRequest(fiber.MethodPost, "/test", strings.NewReader(`{"text":" "}`))
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, _ := app.Test(req)
-		assert.Equal(fiber.StatusBadRequest, resp.StatusCode)
-		body, _ := io.ReadAll(resp.Body)
-		assert.Equal(`{"title":"INVALID"}`, string(body))
-	})
-
-	t.Run("omit tag", func(t *testing.T) {
-		app := fiber.New()
-		app.Post("/test", func(c *fiber.Ctx) error {
-			var data struct {
-				Title string `json:"-" validate:"trim,required"`
-			}
-			if err := Parse(c, &data); err != nil {
-				return c.Status(fiber.StatusBadRequest).JSON(err)
-			}
-			return c.Status(fiber.StatusOK).JSON(data)
-		})
-
-		req := httptest.NewRequest(fiber.MethodPost, "/test", strings.NewReader(`{}`))
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, _ := app.Test(req)
-		assert.Equal(fiber.StatusBadRequest, resp.StatusCode)
-		body, _ := io.ReadAll(resp.Body)
-		assert.Equal(`{"Title":"INVALID"}`, string(body))
-	})
-
-	t.Run("success: json", func(t *testing.T) {
+	t.Run("json", func(t *testing.T) {
 		app := fiber.New()
 		app.Post("/test", handler)
 
@@ -85,7 +40,7 @@ func TestParse(t *testing.T) {
 		assert.Equal(`{"title":"abc"}`, string(body))
 	})
 
-	t.Run("success: form", func(t *testing.T) {
+	t.Run("form", func(t *testing.T) {
 		app := fiber.New()
 		app.Post("/test", func(c *fiber.Ctx) error {
 			var data struct {
@@ -110,4 +65,44 @@ func TestParse(t *testing.T) {
 		b, _ := io.ReadAll(resp.Body)
 		assert.Equal(`{"something":"abc"}`, string(b))
 	})
+}
+
+func TestValidateStruct(t *testing.T) {
+	assert := assert.New(t)
+
+	type Data struct {
+		Title *string `json:"title" validate:"trim,required"`
+	}
+
+	t.Run("invalid", func(t *testing.T) {
+		data := Data{}
+		json.Unmarshal([]byte(`{}`), &data)
+
+		err := ValidateStruct(data)
+		assert.Equal(errs.MapErrors{"title": errs.ErrInvalid}, err)
+	})
+
+	t.Run("omit tag", func(t *testing.T) {
+		var data struct {
+			Title *string `json:"-" validate:"trim,required"`
+		}
+		json.Unmarshal([]byte(`{}`), &data)
+
+		err := ValidateStruct(data)
+		assert.Equal(errs.MapErrors{"Title": errs.ErrInvalid}, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		data := Data{}
+		json.Unmarshal([]byte(`{"title":" abc "}`), &data)
+
+		err := ValidateStruct(data)
+		assert.Nil(err)
+		assert.Equal("abc", *data.Title)
+	})
+}
+
+func TestValidateVar(t *testing.T) {
+	assert.Equal(t, errs.ErrInvalid, ValidateVar("", "required"))
+	assert.Empty(t, ValidateVar("a", "required"))
 }

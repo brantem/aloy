@@ -33,11 +33,14 @@ async def validation_exception_handler(request, exc):
 
     m = {}
     for error in exc.errors():
+        loc = error["loc"]
+        key = loc[0 if len(loc) == 1 else 1]  # When validating manually, the key will be the first item
+
         match error["type"]:
             case "missing":
-                m[error["loc"][1]] = "REQUIRED"
+                m[key] = "REQUIRED"
             case "value_error":
-                m[error["loc"][1]] = str(error["ctx"]["error"])
+                m[key] = str(error["ctx"]["error"])
 
     if len(m) > 0:
         return JSONResponse(content={"error": m}, status_code=status.HTTP_400_BAD_REQUEST)

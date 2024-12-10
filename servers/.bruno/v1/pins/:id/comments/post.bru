@@ -6,7 +6,7 @@ meta {
 
 post {
   url: {{url}}/v1/pins/1/comments
-  body: json
+  body: multipartForm
   auth: none
 }
 
@@ -15,8 +15,7 @@ headers {
   Aloy-User-ID: {{userId}}
 }
 
-body:json {
-  {
-    "text": "Thanks!"
-  }
+body:multipart-form {
+  text: Thanks!
+  ~attachments: @file()
 }

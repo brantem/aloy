@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brantem/aloy/constant"
+	"github.com/brantem/aloy/errs"
 	"github.com/brantem/aloy/handler/body"
 	"github.com/brantem/aloy/model"
 	"github.com/gofiber/fiber/v2"
@@ -19,13 +20,13 @@ func (h *Handler) getUsers(ctx context.Context, userIds []int) (map[int]*model.U
 	query, args, err := sqlx.In(`SELECT id, name FROM users WHERE id IN (?)`, userIds)
 	if err != nil {
 		log.Error().Err(err).Msg("user.getUsers")
-		return nil, constant.ErrInternalServerError
+		return nil, errs.ErrInternalServerError
 	}
 
 	rows, err := h.db.QueryxContext(ctx, query, args...)
 	if err != nil {
 		log.Error().Err(err).Msg("user.getUsers")
-		return nil, constant.ErrInternalServerError
+		return nil, errs.ErrInternalServerError
 	}
 	defer rows.Close()
 
@@ -34,7 +35,7 @@ func (h *Handler) getUsers(ctx context.Context, userIds []int) (map[int]*model.U
 		var node model.User
 		if err := rows.StructScan(&node); err != nil {
 			log.Error().Err(err).Msg("user.getUsers")
-			return nil, constant.ErrInternalServerError
+			return nil, errs.ErrInternalServerError
 		}
 		m[node.ID] = &node
 	}
@@ -61,6 +62,8 @@ func (h *Handler) createUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(result)
 	}
 
+	// FIXME: This upsert keeps incrementing the id sequence even when nothing changes
+
 	var user User
 	err := h.db.QueryRowContext(c.UserContext(), `
 		INSERT INTO users (_id, app_id, name)
@@ -70,7 +73,7 @@ func (h *Handler) createUser(c *fiber.Ctx) error {
 	`, data.ID, c.Locals(constant.AppIDKey), data.Name).Scan(&user.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("user.createUser")
-		result.Error = constant.RespInternalServerError
+		result.Error = errs.ErrInternalServerError
 		return c.Status(fiber.StatusInternalServerError).JSON(result)
 	}
 	result.User = &user

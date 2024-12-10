@@ -1,22 +1,27 @@
+import json
 import logging
 import sqlite3
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Response, status
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Request, Response, UploadFile, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from pypika import Query, Table
 
-from routes.deps import get_app_id, get_db, get_user_id
+from routes import deps
+from routes.v1 import shared
+from storage import Storage
 
 logger = logging.getLogger("uvicorn.error")
-router = APIRouter(prefix="/pins", dependencies=[Depends(get_user_id)])
+router = APIRouter(prefix="/pins", dependencies=[Depends(deps.get_user_id)])
 
 
 @router.get("/")
 def get_pins(
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    app_id=Depends(get_app_id),
-    _user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    app_id=Depends(deps.get_app_id),
+    _user_id=Depends(deps.get_user_id),
     me: int | None = None,
     _path: str | None = None,
 ):
@@ -26,13 +31,20 @@ def get_pins(
 
     try:
         sql = """
+            WITH t AS (
+              SELECT id, pin_id
+              FROM comments
+              GROUP BY pin_id
+              HAVING MIN(created_at)
+            )
             SELECT
-                p.id, p.user_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
-                (SELECT COUNT(c.id)-1 FROM comments c WHERE c.pin_id = p.id) AS total_replies
+              p.id, p.user_id, t.id AS comment_id, p.path, p.w, p._x, p.x, p._y, p.y, p.completed_at,
+              (SELECT COUNT(c.id)-1 FROM comments c WHERE c.pin_id = p.id) AS total_replies
             FROM pins p
+            JOIN t ON t.pin_id = p.id
             WHERE p.app_id = ?
-                AND CASE WHEN ? IS NOT NULL THEN p.user_id = ? ELSE TRUE END
-                AND CASE WHEN ? IS NOT NULL THEN p._path = ? ELSE TRUE END
+              AND CASE WHEN ? IS NOT NULL THEN p.user_id = ? ELSE TRUE END
+              AND CASE WHEN ? IS NOT NULL THEN p._path = ? ELSE TRUE END
             ORDER BY p.id DESC
         """
         pins = db.execute(sql, (app_id, user_id, user_id, _path, _path)).fetchall()
@@ -44,16 +56,22 @@ def get_pins(
 
         # Unsure how to run these concurrently
         user_ids = [pin["user_id"] for pin in pins]
-        users = get_users(db, user_ids)
+        users = shared.get_users(db, user_ids)
 
-        pin_ids = [pin["id"] for pin in pins]
-        comments = get_comments(db, pin_ids)
+        comment_ids = [pin["comment_id"] for pin in pins]
+        comments = shared.get_comments(db, comment_ids)
+        attachments = shared.get_attachments(db, comment_ids)
 
         for node in nodes:
             node["user"] = users.get(node["user_id"])
             del node["user_id"]
 
-            node["comment"] = comments.get(node["id"])
+            node["comment"] = comments.get(node["comment_id"])
+            if node["comment"] is not None:
+                node["comment"]["attachments"] = attachments.get(node["comment_id"])
+                if node["comment"]["attachments"] is None:
+                    node["comment"]["attachments"] = []
+            del node["comment_id"]
 
         response.headers["X-Total-Count"] = str(len(nodes))
         return {"nodes": nodes, "error": None}
@@ -83,13 +101,23 @@ class CreatePinBody(BaseModel):
 
 @router.post("/")
 async def create_pin(
-    body: CreatePinBody,
+    request: Request,
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    app_id=Depends(get_app_id),
-    user_id=Depends(get_user_id),
+    attachments: list[UploadFile] | None = None,
+    db: sqlite3.Connection = Depends(deps.get_db),
+    storage: Storage = Depends(deps.get_storage),
+    app_id=Depends(deps.get_app_id),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
+        form_data = await request.form()
+        body = CreatePinBody.model_validate(dict(form_data))
+    except ValidationError as e:
+        raise RequestValidationError(e.errors())
+
+    try:
+        upload_attachment_results = shared.upload_attachments(storage, attachments)
+
         sql = """
             INSERT INTO pins (app_id, user_id, _path, path, w, _x, x, _y, y)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -108,11 +136,20 @@ async def create_pin(
         )
         pin = db.execute(sql, params).fetchone()
 
-        sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?)"
-        db.execute(sql, (pin["id"], user_id, body.text))
+        sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id"
+        comment = db.execute(sql, (pin["id"], user_id, body.text)).fetchone()
+
+        if len(upload_attachment_results) > 0:
+            q = Query.into(Table("attachments")).columns("comment_id", "url", "data")
+            for result in upload_attachment_results:
+                q = q.insert(comment["id"], result.url, json.dumps(result.data))
+            db.execute(q.get_sql())
 
         db.commit()
         return {"pin": {"id": pin["id"]}, "error": None}
+    except HTTPException as e:
+        response.status_code = e.status_code
+        return {"comment": None, "error": e.detail}
     except Exception as e:
         logger.error(f"pins.create_pin: {e}")
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -121,11 +158,11 @@ async def create_pin(
 
 @router.post("/{pin_id}/complete")
 def complete_pin(
-    pin_id: Annotated[int, Path()],
     response: Response,
+    pin_id: Annotated[int, Path()],
     body: str = Body(default=""),
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    db: sqlite3.Connection = Depends(deps.get_db),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         if body.strip() == "1":
@@ -134,7 +171,7 @@ def complete_pin(
                     UPDATE pins
                     SET completed_at = CURRENT_TIMESTAMP, completed_by_id = ?
                     WHERE id = ?
-                        AND completed_at IS NULL
+                      AND completed_at IS NULL
                 """,
                 (user_id, pin_id),
             )
@@ -144,7 +181,7 @@ def complete_pin(
                     UPDATE pins
                     SET completed_at = NULL, completed_by_id = NULL
                     WHERE id = ?
-                        AND completed_at IS NOT NULL
+                      AND completed_at IS NOT NULL
                 """,
                 (pin_id,),
             )
@@ -157,10 +194,10 @@ def complete_pin(
 
 @router.delete("/{pin_id}")
 def delete_pin(
-    pin_id: Annotated[int, Path()],
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    pin_id: Annotated[int, Path()],
+    db: sqlite3.Connection = Depends(deps.get_db),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
         db.execute("DELETE FROM pins WHERE id = ? AND user_id = ?", (pin_id, user_id))
@@ -173,9 +210,9 @@ def delete_pin(
 
 @router.get("/{pin_id}/comments")
 def get_pin_comments(
-    pin_id: Annotated[int, Path()],
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
+    pin_id: Annotated[int, Path()],
+    db: sqlite3.Connection = Depends(deps.get_db),
 ):
     try:
         sql = """
@@ -193,11 +230,18 @@ def get_pin_comments(
             return {"nodes": [], "error": None}
 
         user_ids = [comment["user_id"] for comment in nodes]
-        users = get_users(db, user_ids)
+        users = shared.get_users(db, user_ids)
+
+        comment_ids = [comment["id"] for comment in nodes]
+        attachments = shared.get_attachments(db, comment_ids)
 
         for node in nodes:
             node["user"] = users.get(node["user_id"])
             del node["user_id"]
+
+            node["attachments"] = attachments.get(node["id"])
+            if node["attachments"] is None:
+                node["attachments"] = []
 
         response.headers["X-Total-Count"] = str(len(nodes))
         return {"nodes": nodes, "error": None}
@@ -219,47 +263,39 @@ class CreateCommentBody(BaseModel):
 
 
 @router.post("/{pin_id}/comments")
-def create_comment(
-    pin_id: Annotated[int, Path()],
-    body: CreateCommentBody,
+async def create_comment(
+    request: Request,
     response: Response,
-    db: sqlite3.Connection = Depends(get_db),
-    user_id=Depends(get_user_id),
+    pin_id: Annotated[int, Path()],
+    attachments: list[UploadFile] | None = None,
+    db: sqlite3.Connection = Depends(deps.get_db),
+    storage: Storage = Depends(deps.get_storage),
+    user_id=Depends(deps.get_user_id),
 ):
     try:
+        form_data = await request.form()
+        body = CreateCommentBody.model_validate(dict(form_data))
+    except ValidationError as e:
+        raise RequestValidationError(e.errors())
+
+    try:
+        upload_attachment_results = shared.upload_attachments(storage, attachments)
+
         sql = "INSERT INTO comments (pin_id, user_id, text) VALUES (?, ?, ?) RETURNING id"
         comment = db.execute(sql, (pin_id, user_id, body.text)).fetchone()
+
+        if len(upload_attachment_results) > 0:
+            q = Query.into(Table("attachments")).columns("comment_id", "url", "data")
+            for result in upload_attachment_results:
+                q = q.insert(comment["id"], result.url, json.dumps(result.data))
+            db.execute(q.get_sql())
+
+        db.commit()
         return {"comment": {"id": comment["id"]}, "error": None}
+    except HTTPException as e:
+        response.status_code = e.status_code
+        return {"comment": None, "error": e.detail}
     except Exception as e:
         logger.error(f"pins.create_comment: {e}")
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"comment": None, "error": {"code": "INTERNAL_SERVER_ERROR"}}
-
-
-def get_users(db: sqlite3.Connection, user_ids: list[int]):
-    try:
-        sql = "SELECT id, name FROM users WHERE id IN ({})".format(",".join("?" * len(user_ids)))
-        users = db.execute(sql, user_ids).fetchall()
-        return {user["id"]: dict(user) for user in users}
-    except Exception as e:
-        logger.error(f"pins.get_users: {e}")
-        return {}
-
-
-def get_comments(db: sqlite3.Connection, comment_ids: list[int]):
-    try:
-        sql = """
-            SELECT id, pin_id, text, created_at, updated_at
-            FROM comments
-            WHERE pin_id IN ({})
-            GROUP BY pin_id
-            HAVING MIN(created_at)
-        """.format(",".join("?" * len(comment_ids)))
-        comments = db.execute(sql, comment_ids).fetchall()
-        return {
-            comment["pin_id"]: {k: comment[k] for k in ("id", "text", "created_at", "updated_at")}
-            for comment in comments
-        }
-    except Exception as e:
-        logger.error(f"pins.get_comments: {e}")
-        return {}

@@ -2,5 +2,10 @@
 
 interface Bindings {
 	ALLOW_ORIGINS: string;
+	ASSETS_BASE_URL: string;
+	ATTACHMENT_MAX_COUNT: string;
+	ATTACHMENT_MAX_SIZE: string;
+	ATTACHMENT_SUPPORTED_TYPES: string;
+	Bucket: R2Bucket;
 	DB: D1Database;
 }

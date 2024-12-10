@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 
 import Comment from 'components/Comment';
-import AddCommentForm from 'components/SaveCommentForm';
+import SaveCommentForm from 'components/SaveCommentForm';
 
 import { State, type Pin, type Comment as C } from 'types';
 import { usePinPosition } from 'lib/hooks';
@@ -23,20 +23,22 @@ export default function Pin({ pin }: PinProps) {
     active: state.active,
     setActive: state.setActive,
   }));
-  const { isHovered, setHoveredId, isActive, isActiveIdLocked, setActiveId } = usePinStore((state) => {
-    return {
-      isHovered: pin.id === state.hoveredId,
-      setHoveredId: state.setHoveredId,
-      isActive: pin.id === state.activeId,
-      isActiveIdLocked: state.isActiveIdLocked,
-      setActiveId(v: number, isLocked = false) {
-        state.setActiveId(v, isLocked);
-        if (active !== State.AddComment) return;
-        setActive(State.Nothing);
-        state.setTempPin(null);
-      },
-    };
-  });
+  const { isHovered, isSelected, setHoveredId, isActive, isActiveIdLocked, setActiveId } = usePinStore((state) => ({
+    isHovered: pin.id === state.hoveredId,
+    isSelected: pin.comment.id === state.selectedCommentId,
+    setHoveredId: state.setHoveredId,
+    isActive: pin.id === state.activeId,
+    isActiveIdLocked: state.isActiveIdLocked,
+    setActiveId(v: number, isLocked = false) {
+      // handle click outside while there is a selected comment
+      if (v === 0 && state.selectedCommentId !== 0) return state.setSelectedCommentId(0);
+
+      state.setActiveId(v, isLocked);
+      if (active !== State.AddComment) return;
+      setActive(State.Nothing);
+      state.setTempPin(null);
+    },
+  }));
 
   const enterTimeoutRef = useRef<NodeJS.Timeout>();
   const leaveTimeoutRef = useRef<NodeJS.Timeout>();
@@ -59,6 +61,8 @@ export default function Pin({ pin }: PinProps) {
   // Replies will be visible when the pin is active and locked (clicked)
   const isRepliesVisible = isActive && isActiveIdLocked;
 
+  const comment = { pin_id: pin.id, ...pin.comment, user: pin.user };
+
   return createPortal(
     <>
       {isExpanded && (
@@ -76,7 +80,8 @@ export default function Pin({ pin }: PinProps) {
 
       <div
         className={cn(
-          '__aloy-pin absolute !rounded-tl-none border border-neutral-200 bg-white',
+          '__aloy-pin absolute !rounded-tl-none border border-neutral-200',
+          !isExpanded && pin.completed_at ? 'bg-lime-200 text-lime-900' : 'bg-white text-neutral-900',
           isHidden && '!hidden',
           isHoverable && 'cursor-pointer',
           isExpanded
@@ -109,14 +114,18 @@ export default function Pin({ pin }: PinProps) {
         {!isHidden &&
           (isExpanded ? (
             <div className="flex flex-col [&>*~*]:border-t [&>*~*]:border-neutral-200">
-              <Comment
-                isRoot
-                comment={{ pin_id: pin.id, ...pin.comment, user: pin.user }}
-                showMarkAsDone
-                isCompleted={!!pin.completed_at}
-                totalReplies={pin.total_replies}
-                showTotalReplies={!isRepliesVisible}
-              />
+              {isSelected ? (
+                <SaveCommentForm pinId={pin.id} comment={comment} />
+              ) : (
+                <Comment
+                  isRoot
+                  comment={comment}
+                  showMarkAsDone
+                  isCompleted={!!pin.completed_at}
+                  totalReplies={pin.total_replies}
+                  showTotalReplies={!isRepliesVisible}
+                />
+              )}
               {isRepliesVisible && <Replies pinId={pin.id} />}
             </div>
           ) : (
@@ -135,11 +144,11 @@ const Replies = ({ pinId }: { pinId: Pin['id'] }) => {
     <>
       {(data?.nodes || []).map((comment) => {
         if (selectedCommentId === comment.id) {
-          return <AddCommentForm key={comment.id} pinId={pinId} comment={comment} />;
+          return <SaveCommentForm key={comment.id} pinId={pinId} comment={comment} />;
         }
         return <Comment key={comment.id} comment={{ pin_id: pinId, ...comment }} />;
       })}
-      {!selectedCommentId ? <AddCommentForm pinId={pinId} /> : null}
+      {!selectedCommentId ? <SaveCommentForm pinId={pinId} /> : null}
     </>
   );
 };

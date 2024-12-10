@@ -22,23 +22,19 @@ export default function User({ onChange }: UserProps) {
   return (
     <>
       {user && (
-        <div className="fixed right-4 top-4 z-[3002]">
+        <div className="fixed left-1/2 top-4 z-20 flex -translate-x-1/2 justify-center">
           <button
-            className={cn(
-              'group relative flex size-7 items-center justify-center rounded-full bg-black px-2.5 text-white shadow-xl dark:bg-white dark:text-black',
-              isOpen ? 'w-fit text-sm font-normal' : 'font-bold hover:w-fit hover:text-sm hover:font-normal',
-            )}
+            className="group relative flex h-8 items-center justify-center rounded-full border border-neutral-200 bg-black px-3 text-sm font-semibold text-white shadow-xl dark:bg-white dark:text-black"
             onClick={() => setIsOpen(true)}
           >
-            <span className={isOpen ? 'hidden' : 'group-hover:hidden'}>{user.name[0]}</span>
-            <span className={isOpen ? undefined : 'hidden group-hover:inline'}>{name || user.name}</span>
+            {name || user.name}
           </button>
         </div>
       )}
 
       <Dialog
         open={isOpen}
-        className="relative z-[3002] focus:outline-none lg:z-[3001]"
+        className="relative z-20 focus:outline-none lg:z-10"
         onClose={() => {
           if (!user) return;
           setIsOpen(false);
@@ -49,7 +45,7 @@ export default function User({ onChange }: UserProps) {
           className="fixed inset-0 bg-black/50 backdrop-blur-sm duration-300 ease-out data-[closed]:opacity-0 lg:backdrop-blur-md"
         />
 
-        <div className="fixed inset-0 z-[3001] w-screen overflow-y-auto">
+        <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
           <div className="flex min-h-full items-end justify-center lg:items-center lg:p-6">
             <DialogPanel
               transition

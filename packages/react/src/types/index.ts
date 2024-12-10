@@ -1,6 +1,15 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Any = any;
 
+export type Config = {
+  breakpoints: number[];
+  attachment: {
+    maxCount: number;
+    maxSize: number;
+    supportedTypes: string[];
+  };
+};
+
 export enum State {
   Nothing = 0,
   AddComment,
@@ -21,10 +30,19 @@ export type PinPosition = {
   y: number;
 };
 
+export type Attachment = {
+  url: string;
+  data: {
+    type: string;
+    hash?: string;
+  };
+};
+
 export type Comment = {
   id: number;
   user: User;
   text: string;
+  attachments: Attachment[];
   created_at: number;
   updated_at: number;
 };
@@ -34,5 +52,5 @@ export type Pin = PinPosition & {
   user: User;
   total_replies: number;
   completed_at: number | null;
-  comment: Pick<Comment, 'id' | 'text' | 'created_at' | 'updated_at'>;
+  comment: Pick<Comment, 'id' | 'text' | 'created_at' | 'updated_at' | 'attachments'>;
 };

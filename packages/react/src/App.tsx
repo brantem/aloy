@@ -25,7 +25,14 @@ export default function App() {
           ref={aloyRef}
           apiUrl={import.meta.env.VITE_API_URL}
           appId={import.meta.env.VITE_APP_ID}
-          breakpoints={[640, 768, 1024, 1280]}
+          config={{
+            breakpoints: [640, 768, 1024, 1280],
+            attachment: {
+              maxCount: 3,
+              maxSize: 100 * 1000,
+              supportedTypes: ['image/gif', 'image/jpeg', 'image/png', 'image/webp'],
+            },
+          }}
           user={user}
         />
       )}

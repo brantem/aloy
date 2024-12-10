@@ -1,3 +1,4 @@
+-- Migration number: 0000 	 2023-09-02T13:35:52.834Z
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE users (
